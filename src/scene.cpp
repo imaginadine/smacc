@@ -160,6 +160,14 @@ void scene_structure::update_character()
 		global_motion.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
 	}
 
+	// order the motions to know which is calculated first
+	order_motions_by_joint_id(); // not HERE BEFORE
+
+	// End of direction motions
+	for(Direction& dir_m : motion_dirs){
+		dir_m.find_after_joints(dir_m.times[dir_m.times.size()-1] + 0.1f, 0.1f, characters["Lola"].animated_model, motions, all_joint_ids);
+	}
+
 	// manage impacts
 	if (impact_lines.size()>0) {
 		Direction::update_dirs_with_impacts(characters["Lola"].timer.t_periodic, motion_dirs, impact_lines, characters["Lola"].animated_model, motions, all_joint_ids);
@@ -169,7 +177,7 @@ void scene_structure::update_character()
 	}
 
 	// order the motions to know which is calculated first
-	order_motions_by_joint_id();
+	order_motions_by_joint_id(); // IMPORTANT TO HAVE THIS HERE
 
 	// define time : the longest animation
 	characters["Lola"].timer.event_period = calculate_animation_duration();
@@ -261,7 +269,8 @@ void scene_structure::display_frame()
 		if(!gui.sketch_mode) {
 			for(int i=0; i<motions.size();i++){
 				if (motions[i].joint_id != 0) {
-					character.animated_model.set_skeleton_from_motion_joint_ik(motions[motions.size()-1-i], character.timer.t_periodic, all_joint_ids);
+					//character.animated_model.set_skeleton_from_motion_joint_ik(motions[motions.size()-1-i], character.timer.t_periodic, all_joint_ids);
+					character.animated_model.set_skeleton_from_ending_joints(motions[motions.size()-1-i], character.timer.t_periodic);
 				}
 			}
 

@@ -35,6 +35,7 @@ struct animated_model_structure {
     void set_skeleton_from_motion_joint_ik(Motion& m, float t, cgp::numarray<int> stop_ids);
     void set_skeleton_from_motion_impacts(Motion& m);
     bool is_reachable_from_motion_impacts(Motion& m, int impact_joint_id, cgp::vec3 pos_impact);
+    void set_skeleton_from_ending_joints(Motion m, float t);
 
     // Compute the Linear Blend Skinning deformation on the designated rigged mesh
     void skinning_lbs(std::string const& mesh_name);

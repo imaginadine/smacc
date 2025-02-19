@@ -16,6 +16,7 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source, camer
     
     int N_pos_total = N_pos_before + 5; // N_pos_total > (N_pos_before + 1)
     positions_to_follow.resize(N_pos_total);
+    //positions_to_follow.resize(N_pos_before+1);
 
     // position of movement
     positions_to_follow[N_pos_before] = t_source;
@@ -34,7 +35,7 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source, camer
 
     // case of close start and end
     if (norm(dir_line.samples[dir_line.samples.size()-1] - dir_line.samples[0]) < 0.1f && dir_line.get_length() > 0.3f) {
-        std::cout<<"boucle"<<std::endl;
+        //std::cout<<"boucle"<<std::endl;
 
         // continue the loop if local
         if (lines[0].type_motion == Line_type::DirT) {
@@ -131,6 +132,115 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source, camer
 
     // find distances between the positions
     find_distances();
+}
+
+
+void Direction::find_after_joints(float t_end, float dt_before, animated_model_structure& animated_model, numarray<Motion> ordered_motions, numarray<int> all_joint_ids)
+{
+    float t = times[N_pos_before];
+    float dt_after = t_end - t;
+
+    std::cout<<"t before = "<<t - dt_before<<" t now = "<<t<<" t after = "<<t_end<<std::endl;
+
+    // 1) put the skeleton in the pose at time t - dt
+    animated_model.set_skeleton_from_animation("Idle", 0.0f);
+
+    std::cout<<"joint idle :"<<animated_model.skeleton.joint_matrix_global[21]<<std::endl;
+        
+    int i=0;
+	while(i<ordered_motions.size() && ordered_motions[i].joint_id>=joint_id ){
+		if (ordered_motions[i].joint_id != 0) {
+            std::cout<<"joint_id ? "<<ordered_motions[i].joint_id<<std::endl;
+			animated_model.set_skeleton_from_motion_joint_ik(ordered_motions[ordered_motions.size()-1-i], t - dt_before, all_joint_ids);
+		}
+        i++;
+	}
+
+    std::cout<<"joint t - dt :"<<animated_model.skeleton.joint_matrix_global[21]<<std::endl;
+
+    // 2) save the joints in its IK chain at this moment
+    numarray<mat4> joints_before = animated_model.skeleton.joint_matrix_global;
+
+    // 3) Put the skeleton at the end of the motion line
+    animated_model.set_skeleton_from_animation("Idle", 0.0f);
+        
+    i=0;
+	while(i<ordered_motions.size() && ordered_motions[i].joint_id>=joint_id ){
+		if (ordered_motions[i].joint_id != 0) {
+			animated_model.set_skeleton_from_motion_joint_ik(ordered_motions[ordered_motions.size()-1-i], t, all_joint_ids);
+		}
+        i++;
+	}
+
+    // 4) save the joints at this current position
+    numarray<mat4> joints_now = animated_model.skeleton.joint_matrix_global;
+
+    // 5) compute velocity and angular velocity for each joint in the IK chain
+    global_joints_after.resize_clear(0);
+
+    for (int i = 0; i < chain.size(); i++) {
+        int cur_joint_id = chain[i];
+        std::cout<<"cur joint id : "<<cur_joint_id<<std::endl;
+
+        // --- a) Compute velocity ---
+        vec3 p_before = joints_before[cur_joint_id].get_block_translation();
+        vec3 p_now = joints_now[cur_joint_id].get_block_translation();
+        vec3 vel = (p_now - p_before) / dt_before;
+
+        // --- b) Compute angular velocity ---
+        mat3 M = joints_before[cur_joint_id].get_block_linear();
+        mat3 M_target = joints_now[cur_joint_id].get_block_linear();
+        rotation_transform rotation = rotation_transform::from_matrix(transpose(M_target) * M);
+        
+        vec3 axis;
+        float angle;
+        rotation.to_axis_angle(axis, angle);
+        
+        if (angle > 1e-6f) { // Avoid numerical issues for very small rotations
+            axis = normalize(axis);
+        } else {
+            axis = vec3(0.0f, 0.0f, 1.0f); // Default axis if negligible rotation
+        }
+        
+        vec3 ang_vel = angle * axis / dt_before;
+
+        // --- c) Compute new position ---
+        vec3 new_pos = p_now + vel * dt_after;
+
+        // --- d) Compute new rotation ---
+        rotation_transform rt_now = rotation_transform::from_matrix(M_target);
+        quaternion q_now = rt_now.get_quaternion();
+
+        // Convert angular velocity to quaternion form
+        float ang_vel_mag = norm(ang_vel);
+        vec3 ang_vel_axis = (ang_vel_mag > 1e-6f) ? normalize(ang_vel) : vec3(0.0f, 0.0f, 1.0f);
+        
+        float half_theta = (ang_vel_mag * dt_after) / 2.0f;
+        quaternion q_delta = quaternion(cos(half_theta), sin(half_theta) * ang_vel_axis); // Quaternion from rotation
+
+        quaternion q_after = q_delta * q_now; // Apply rotation update
+        rotation_transform rt_after = rotation_transform(q_after);
+        mat3 block_linear_after = rt_after.matrix();
+
+        // --- e) Store updated joint ---
+        mat4 joint_after = mat4::build_identity();
+        joint_after.set_block_translation(new_pos);
+        joint_after.set_block_linear(block_linear_after);
+
+
+        /*mat4 T_before = joints_before[cur_joint_id];  // 4x4 transformation
+        mat4 T_now = joints_now[cur_joint_id];        // 4x4 transformation
+
+        // Compute velocity transformation
+        mat4 T_rel = inverse(T_before) * T_now;  // Relative transformation
+        mat4 V_twist = log_matrix(T_rel) / dt_before;  // Compute twist matrix
+
+        // Extrapolate motion
+        mat4 T_after = T_now * exp_matrix(V_twist * dt_after);*/
+
+        global_joints_after.push_back(joint_after);
+    }         
+
 }
 
 
@@ -242,7 +352,7 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
     }
 
 
-    // 1) Put the character in its current pose    float total_length = 0.f;
+    // 1) Put the character in its current pose
 
     animated_model.set_skeleton_from_animation("Idle", 0.0f);
         

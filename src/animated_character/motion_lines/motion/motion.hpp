@@ -32,6 +32,8 @@ class Motion {
 		int joint_root_ik = 0;
 		cgp::numarray<line_structure> lines;
 
+		cgp::numarray<cgp::mat4> global_joints_after;
+
 		std::map<int, cgp::vec3> impacts; // id joint impacted | pos the impact joint
 		int step_with_impact = 0;
 		float t_impact = -1.f;
