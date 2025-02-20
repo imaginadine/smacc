@@ -27,12 +27,13 @@ class Motion {
 
 		cgp::numarray<cgp::mat4> joints;
 		cgp::numarray<float> times;
+		float t_end;
 		cgp::numarray<float> distances;
 		float dist_total;
 		int joint_root_ik = 0;
 		cgp::numarray<line_structure> lines;
 
-		cgp::numarray<cgp::mat4> global_joints_after;
+		cgp::numarray<cgp::numarray<cgp::mat4>> all_local_joints_after;
 
 		std::map<int, cgp::vec3> impacts; // id joint impacted | pos the impact joint
 		int step_with_impact = 0;
@@ -67,6 +68,7 @@ class Motion {
 		void animate_motion_to_joint(skeleton_structure& skeleton);
 
 		cgp::mat4 evaluate(float t) const;
+		cgp::mat4 evaluate_end(int id_joint_in_chain, float t) const;
 
 		void find_chain(skeleton_structure skeleton);
 		void update_skeleton(skeleton_structure& skeleton);

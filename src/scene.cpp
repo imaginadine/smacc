@@ -165,7 +165,7 @@ void scene_structure::update_character()
 
 	// End of direction motions
 	for(Direction& dir_m : motion_dirs){
-		dir_m.find_after_joints(dir_m.times[dir_m.times.size()-1] + 0.1f, 0.1f, characters["Lola"].animated_model, motions, all_joint_ids);
+		dir_m.find_after_joints(dir_m.times[dir_m.N_pos_before] + 0.5f, characters["Lola"].animated_model, motions, all_joint_ids); // t_end, dt_before, ...
 	}
 
 	// manage impacts
@@ -268,9 +268,13 @@ void scene_structure::display_frame()
 
 		if(!gui.sketch_mode) {
 			for(int i=0; i<motions.size();i++){
-				if (motions[i].joint_id != 0) {
-					//character.animated_model.set_skeleton_from_motion_joint_ik(motions[motions.size()-1-i], character.timer.t_periodic, all_joint_ids);
-					character.animated_model.set_skeleton_from_ending_joints(motions[motions.size()-1-i], character.timer.t_periodic);
+				Motion motion_used = motions[motions.size()-1-i];
+				if (motion_used.joint_id != 0) {
+					if (character.timer.t_periodic <= motion_used.times[motion_used.N_pos_before]) {
+						character.animated_model.set_skeleton_from_motion_joint_ik(motion_used, character.timer.t_periodic, all_joint_ids);
+					} else {
+						character.animated_model.set_skeleton_from_ending_joints(motion_used, character.timer.t_periodic);
+					}
 				}
 			}
 

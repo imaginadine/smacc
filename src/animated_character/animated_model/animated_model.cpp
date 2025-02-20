@@ -111,14 +111,15 @@ void animated_model_structure::set_skeleton_from_animation(std::string const& an
 
 void animated_model_structure::set_skeleton_from_ending_joints(Motion m, float t)
 {
-    for(int k=0; k<m.chain.size(); k++) {
+    for(int k=0; k<m.chain.size()-1; k++) {
         int joint = m.chain[k];
-        //mat4 M = m.evaluate_end(k, t);
-        //skeleton.joint_matrix_global[joint] = M;
-        skeleton.joint_matrix_global[joint] = m.global_joints_after[k];
+        mat4 M = m.evaluate_end(k, t);
+        skeleton.joint_matrix_local[joint] = M;
     }
-    skeleton.update_joint_matrix_global_to_local();
-    skeleton.update_joint_matrix_local_to_global_from_id(m.joint_id);
+    //skeleton.update_joint_matrix_local_to_global_from_id(m.joint_id);
+    //skeleton.update_joint_matrix_global_to_local();
+
+    skeleton.update_joint_matrix_local_to_global();
 }
 
 

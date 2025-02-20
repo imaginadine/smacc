@@ -14,9 +14,8 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source, camer
 
     N_pos_before = dir_line.samples.size();
     
-    int N_pos_total = N_pos_before + 5; // N_pos_total > (N_pos_before + 1)
+    int N_pos_total = N_pos_before + 10; // N_pos_total > (N_pos_before + 1)
     positions_to_follow.resize(N_pos_total);
-    //positions_to_follow.resize(N_pos_before+1);
 
     // position of movement
     positions_to_follow[N_pos_before] = t_source;
@@ -135,31 +134,80 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source, camer
 }
 
 
-void Direction::find_after_joints(float t_end, float dt_before, animated_model_structure& animated_model, numarray<Motion> ordered_motions, numarray<int> all_joint_ids)
+numarray<mat4> Direction::get_joints_in_chain(numarray<mat4> skeleton_joints)
 {
-    float t = times[N_pos_before];
-    float dt_after = t_end - t;
+    numarray<mat4> joints_in_chain;
+    joints_in_chain.resize(chain.size());
+    for (int i = 0; i < chain.size(); i++) {
+        joints_in_chain[i] = skeleton_joints[chain[i]];
+    }
+    return joints_in_chain;
+}
 
-    std::cout<<"t before = "<<t - dt_before<<" t now = "<<t<<" t after = "<<t_end<<std::endl;
+
+quaternion slerp(const quaternion& q1, const quaternion& q2, float t) {
+    // Compute the dot product (cosine of the angle)
+    float dot_product = dot(q1, q2);
+
+    // If dot product is negative, negate one quaternion to take the shortest path
+    quaternion q2_copy = q2;
+    if (dot_product < 0.0f) {
+        q2_copy = -1.0f*q2;
+        dot_product = -dot_product;
+    }
+
+    // If quaternions are very close, use linear interpolation to avoid instability
+    const float THRESHOLD = 0.9995f;
+    if (dot_product > THRESHOLD) {
+        quaternion result = normalize(q1 + t * (q2_copy - q1));
+        return result;
+    }
+
+    // Compute the angle between the quaternions
+    float theta_0 = acos(dot_product);  // Angle between q1 and q2
+    float theta = theta_0 * t;          // Scaled angle
+
+    // Compute sin values
+    float sin_theta = sin(theta);
+    float sin_theta_0 = sin(theta_0);
+
+    // Compute the interpolation weights
+    float s0 = cos(theta) - dot_product * sin_theta / sin_theta_0;
+    float s1 = sin_theta / sin_theta_0;
+
+    // Return the interpolated quaternion
+    return normalize(s0 * q1 + s1 * q2_copy);
+}
+
+
+
+
+void Direction::find_after_joints(float t_stop, animated_model_structure& animated_model, numarray<Motion> ordered_motions, numarray<int> all_joint_ids)
+{
+    t_end = t_stop;
+    //float dt_after = times[N_pos_before] - times[N_pos_before-1];
+    float dt_after = 0.1f*times[N_pos_before];
+    std::cout<<"dt_after = "<<dt_after<<std::endl;
+    //float dt_after = 0.1f;
+    float dt_initial = dt_after;
+
+    all_local_joints_after.resize_clear(0);
+
+    float t = times[N_pos_before];
 
     // 1) put the skeleton in the pose at time t - dt
     animated_model.set_skeleton_from_animation("Idle", 0.0f);
-
-    std::cout<<"joint idle :"<<animated_model.skeleton.joint_matrix_global[21]<<std::endl;
         
     int i=0;
 	while(i<ordered_motions.size() && ordered_motions[i].joint_id>=joint_id ){
 		if (ordered_motions[i].joint_id != 0) {
-            std::cout<<"joint_id ? "<<ordered_motions[i].joint_id<<std::endl;
-			animated_model.set_skeleton_from_motion_joint_ik(ordered_motions[ordered_motions.size()-1-i], t - dt_before, all_joint_ids);
+			animated_model.set_skeleton_from_motion_joint_ik(ordered_motions[ordered_motions.size()-1-i], t - dt_after, all_joint_ids);
 		}
         i++;
 	}
 
-    std::cout<<"joint t - dt :"<<animated_model.skeleton.joint_matrix_global[21]<<std::endl;
-
-    // 2) save the joints in its IK chain at this moment
-    numarray<mat4> joints_before = animated_model.skeleton.joint_matrix_global;
+    // 2) save the 3D orientations in its IK chain at this moment (locally)
+    numarray<mat4> local_joints_before = get_joints_in_chain(animated_model.skeleton.joint_matrix_local);
 
     // 3) Put the skeleton at the end of the motion line
     animated_model.set_skeleton_from_animation("Idle", 0.0f);
@@ -173,73 +221,74 @@ void Direction::find_after_joints(float t_end, float dt_before, animated_model_s
 	}
 
     // 4) save the joints at this current position
-    numarray<mat4> joints_now = animated_model.skeleton.joint_matrix_global;
+    numarray<mat4> local_joints_now = get_joints_in_chain(animated_model.skeleton.joint_matrix_local);
 
-    // 5) compute velocity and angular velocity for each joint in the IK chain
-    global_joints_after.resize_clear(0);
+    numarray<mat4> local_joints_after;
+    all_local_joints_after.push_back(local_joints_now);
 
-    for (int i = 0; i < chain.size(); i++) {
-        int cur_joint_id = chain[i];
-        std::cout<<"cur joint id : "<<cur_joint_id<<std::endl;
+    float alpha = 0.2f;
+    int k = N_pos_before;
+    while(k < times.size()) {
 
-        // --- a) Compute velocity ---
-        vec3 p_before = joints_before[cur_joint_id].get_block_translation();
-        vec3 p_now = joints_now[cur_joint_id].get_block_translation();
-        vec3 vel = (p_now - p_before) / dt_before;
+        // 5) compute angular velocity for each joint in the IK chain
 
-        // --- b) Compute angular velocity ---
-        mat3 M = joints_before[cur_joint_id].get_block_linear();
-        mat3 M_target = joints_now[cur_joint_id].get_block_linear();
-        rotation_transform rotation = rotation_transform::from_matrix(transpose(M_target) * M);
-        
-        vec3 axis;
-        float angle;
-        rotation.to_axis_angle(axis, angle);
-        
-        if (angle > 1e-6f) { // Avoid numerical issues for very small rotations
-            axis = normalize(axis);
-        } else {
-            axis = vec3(0.0f, 0.0f, 1.0f); // Default axis if negligible rotation
-        }
-        
-        vec3 ang_vel = angle * axis / dt_before;
+            for (int i = 0; i < chain.size(); i++) {
+                // a) extract angular velocity from IK motion
 
-        // --- c) Compute new position ---
-        vec3 new_pos = p_now + vel * dt_after;
+                // extract the local orientation at time step t - dt
+                mat3 orientation_before = local_joints_before[i].get_block_linear();
+                rotation_transform rt_before = rotation_transform::from_matrix(orientation_before);
+                // extract the local orientation at time step t
+                mat3 orientation_now = local_joints_now[i].get_block_linear();
+                rotation_transform rt_now = rotation_transform::from_matrix(orientation_now);
+                quaternion q_now = rt_now.get_quaternion();
+                // compute the relative rotation between two consecutive frames
+                rotation_transform relative_rt = inverse(rt_before) * rt_now;
+                // compute the angular velocity
+                vec3 axis;
+                float angle;
+                relative_rt.to_axis_angle(axis, angle);
+                vec3 ang_vel = (2.f*axis*angle/dt_after) * 0.5f * (1.0f - alpha * (t - times[N_pos_before]));
+                if (std::abs(angle) < 1e-6f) {
+                    ang_vel = vec3(0.0f, 0.0f, 0.0f);
+                }
 
-        // --- d) Compute new rotation ---
-        rotation_transform rt_now = rotation_transform::from_matrix(M_target);
-        quaternion q_now = rt_now.get_quaternion();
-
-        // Convert angular velocity to quaternion form
-        float ang_vel_mag = norm(ang_vel);
-        vec3 ang_vel_axis = (ang_vel_mag > 1e-6f) ? normalize(ang_vel) : vec3(0.0f, 0.0f, 1.0f);
-        
-        float half_theta = (ang_vel_mag * dt_after) / 2.0f;
-        quaternion q_delta = quaternion(cos(half_theta), sin(half_theta) * ang_vel_axis); // Quaternion from rotation
-
-        quaternion q_after = q_delta * q_now; // Apply rotation update
-        rotation_transform rt_after = rotation_transform(q_after);
-        mat3 block_linear_after = rt_after.matrix();
-
-        // --- e) Store updated joint ---
-        mat4 joint_after = mat4::build_identity();
-        joint_after.set_block_translation(new_pos);
-        joint_after.set_block_linear(block_linear_after);
+                // b) propagate the motion with forward kinematics
+                quaternion pure_ang_vel = quaternion(ang_vel, 0.f);
+                quaternion deriv_q = 0.5f * q_now * pure_ang_vel;
+                /*quaternion q_after = q_now + deriv_q * dt_after;
+                q_after = normalize(q_after);*/
+                quaternion q_after = slerp(q_now, normalize(q_now + deriv_q * dt_after), 1.0f);
+                if (dot(q_after, q_now) < 0.0f) {
+                    q_after = -1.0f*q_after;  // Flip to ensure shortest path
+                }
 
 
-        /*mat4 T_before = joints_before[cur_joint_id];  // 4x4 transformation
-        mat4 T_now = joints_now[cur_joint_id];        // 4x4 transformation
+                // c) put the new orientation to the joint after!
+                mat4 joint_after = local_joints_now[i];
+                joint_after.set_block_linear(rotation_transform(q_after).matrix());
 
-        // Compute velocity transformation
-        mat4 T_rel = inverse(T_before) * T_now;  // Relative transformation
-        mat4 V_twist = log_matrix(T_rel) / dt_before;  // Compute twist matrix
+                local_joints_after.push_back(joint_after);
+            }
 
-        // Extrapolate motion
-        mat4 T_after = T_now * exp_matrix(V_twist * dt_after);*/
+        // put in the big matrix
+        all_local_joints_after.push_back(local_joints_after);
 
-        global_joints_after.push_back(joint_after);
-    }         
+        // **Update time step (dt_after decreases over time)**
+        //dt_after = dt_initial * (1.0f - alpha * (t - times[N_pos_before]));
+        //dt_after = std::max(dt_after, 0.001f);  // Prevent too small dt
+
+        // update before / now / after
+        local_joints_before = local_joints_now;
+        local_joints_now = local_joints_after;
+        local_joints_after.resize_clear(0);
+        // next frame
+        t += dt_after;
+        times[k] = t;
+        k ++;
+    }
+
+    std::cout<<times<<std::endl;
 
 }
 

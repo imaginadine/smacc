@@ -16,7 +16,7 @@ class Direction : public Motion {
 
         static void merge_dir_motions(cgp::numarray<Direction>& motions, skeleton_structure skeleton, cgp::numarray<int> cue_ids);
         void find_positions(skeleton_structure skeleton, cgp::vec3 t_source, cgp::camera_projection_perspective const& P, cgp::mat4 const& camera_view_inverse) override;
-        void find_after_joints(float t_end, float dt_before, animated_model_structure& animated_model, cgp::numarray<Motion> ordered_motions, cgp::numarray<int> all_joint_ids);
+        void find_after_joints(float t_stop, animated_model_structure& animated_model, cgp::numarray<Motion> ordered_motions, cgp::numarray<int> all_joint_ids);
 
         cgp::numarray<line_structure> is_impacted(cgp::numarray<line_structure> impact_lines, skeleton_structure skeleton);
         void update_impact(float t_drawn, cgp::numarray<line_structure> impacting_lines, animated_model_structure& animated_model, cgp::numarray<Motion> motions, cgp::numarray<int> all_joint_ids, bool is_global);
@@ -24,5 +24,8 @@ class Direction : public Motion {
         void check_impact_global(float t_drawn, cgp::numarray<line_structure> impact_lines, cgp::numarray<Direction> dir_motions, animated_model_structure& animated_model, cgp::numarray<Motion> motions, cgp::numarray<int> all_joint_ids);
         static void update_dirs_with_impacts(float t_drawn, cgp::numarray<Direction>& dir_motions, cgp::numarray<line_structure> impact_lines, animated_model_structure& animated_model, cgp::numarray<Motion> motions, cgp::numarray<int> all_joint_ids);
         void precompute_positions_with_impacts(animated_model_structure& animated_model, cgp::numarray<Motion> motions, cgp::numarray<int> all_joint_ids, bool is_global);
+        cgp::numarray<cgp::mat4> get_joints_in_chain(cgp::numarray<cgp::mat4> skeleton_joints);
 
 };
+
+cgp::quaternion slerp(const cgp::quaternion& q1, const cgp::quaternion& q2, float t);

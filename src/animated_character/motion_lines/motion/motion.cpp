@@ -158,7 +158,6 @@ float Motion::speed(int step)
         }
         if(speed_factor < min_factor) speed_factor = min_factor;
         speed = v * speed_factor;
-        //std::cout<<"step = "<<step<<", speed factor = "<<speed_factor<<" and speed = "<<speed<<std::endl;
     }
     
     return speed;
@@ -190,7 +189,6 @@ void Motion::animate_motion_to_joint(skeleton_structure& skeleton)
         times.push_back(0.0f); //t0
         for (int i = 1; i < N_positions; i++) {
             // 1) calculate the distance between two positions
-            //float d = norm(positions_to_follow[i] - positions_to_follow[i-1]);
             float d = distances[i-1];
             // 2) calculate the time of the position
             float t = d/speed(i);
@@ -366,6 +364,45 @@ mat4 Motion::evaluate(float t) const {
 
     return M;
 }
+
+
+mat4 Motion::evaluate_end(int id_joint_in_chain, float t) const {
+
+    cgp::numarray<float> time_array = times;
+    int N_time = time_array.size();
+
+    int idx0; // index_placement: i such that t_i < t < t_{i+1}
+    float alpha; // ratio_placement: the relative position of t between its two discrete key time r = (t-t_i) / (t_{i+1}-t_i)
+    find_relative_placement_in_array(time_array, t, idx0, alpha);
+
+    mat4 M;
+    if(idx0<N_time-1){
+        mat4 const& M0 = all_local_joints_after[idx0 - N_pos_before][id_joint_in_chain];
+        mat4 const& M1 = all_local_joints_after[idx0+1 - N_pos_before][id_joint_in_chain];
+        M = (1.0f-alpha)*M0 + alpha*M1;
+    }
+    if(idx0>=N_time-1) {
+        M = all_local_joints_after[N_time-1 - N_pos_before][id_joint_in_chain];
+    }
+
+
+    /*mat4 M;
+    if(t<t_end){
+        float t_before = times[N_pos_before];
+        float t_after = t_end;
+        float alpha = (t - t_before) / (t_after - t_before);
+
+        mat4 const& M0 = local_joints_now[id_joint];
+        mat4 const& M1 = local_joints_after[id_joint_in_chain];
+        M = (1.0f-alpha)*M0 + alpha*M1;
+    } else {
+        M = local_joints_after[id_joint_in_chain];
+    }*/
+
+    return M;
+}
+
+
 
 bool is_joint_parent(int child, int parent, skeleton_structure skeleton)
 {
