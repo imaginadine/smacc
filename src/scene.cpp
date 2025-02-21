@@ -389,6 +389,7 @@ void scene_structure::switch_benchmark(bool to_global)
 	characters["Lola"].animated_model.set_skeleton_from_animation("Idle", 0.0f);
 	old_sketch_mode = true;
 	gui.sketch_mode = false;
+
 }
 
 

@@ -14,7 +14,7 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source, camer
 
     N_pos_before = dir_line.samples.size();
     
-    int N_pos_total = N_pos_before + 5; // N_pos_total > (N_pos_before + 1)
+    int N_pos_total = N_pos_before + 10; // N_pos_total > (N_pos_before + 1)
     positions_to_follow.resize(N_pos_total);
 
     // position of movement
