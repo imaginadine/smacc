@@ -517,8 +517,6 @@ void Direction::precompute_positions_with_impacts_global(animated_model_structur
 void Direction::precompute_positions_with_impacts_local(animated_model_structure& animated_model)
 {
 
-    std::cout<<"in here at least?"<<std::endl;
-
     // 1) Put the character in its current pose
     animated_model.set_skeleton_from_animation("Idle", 0.0f);
     animated_model.set_skeleton_from_motion_joint_ik(*this, times[0]);
@@ -541,7 +539,9 @@ void Direction::precompute_positions_with_impacts_local(animated_model_structure
         }
     }
 
-    if (joint_id != impact_joint_id) {
+    if (joint_id == impact_joint_id) {
+        positions_to_follow.resize(N_pos_before + 1);
+    } else {
 
         int nb_steps_front = 10;
         if(nb_steps_front > positions_to_follow.size()) nb_steps_front = positions_to_follow.size();
@@ -593,10 +593,9 @@ void Direction::precompute_positions_with_impacts_local(animated_model_structure
         positions_to_follow.clear();
         positions_to_follow = new_positions;
         
-        // find distances between the positions
-        find_distances();
     }
-
+    // find distances between the positions
+    find_distances();
     
 }
 

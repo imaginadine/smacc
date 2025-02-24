@@ -161,6 +161,7 @@ void scene_structure::update_character()
 	for(Direction& dir_m : motion_dirs){
 		dir_m.find_after_joints(dir_m.times[dir_m.N_pos_before] + 0.5f, characters["Lola"].animated_model); // t_end, dt_before
 		std::cout<<"size all after joints for motion id "<<dir_m.joint_id<<" : "<<dir_m.all_local_joints_after.size()<<" x "<<dir_m.all_local_joints_after[0].size()<<std::endl;
+
 	}
 
 	// manage impacts
@@ -176,6 +177,7 @@ void scene_structure::update_character()
 
 	// define time : the longest animation
 	characters["Lola"].timer.event_period = calculate_animation_duration();
+
 }
 
 
@@ -573,29 +575,18 @@ void scene_structure::display_gui()
 	if (is_method1_clicked || is_method2_clicked) {
 		if(is_method1_clicked) gui.method = 1;
 		if(is_method2_clicked) gui.method = 2;
-
-		// TO MODIFY
-
-		/*numarray<line_structure> void_lines;
-		for (Direction& motion_dir : motion_dirs) {
-			motion_dir.method = gui.method;
-			motion_dir.add_lines(void_lines, characters["Lola"].animated_model.skeleton, camera_projection, camera_control.camera_model.matrix_frame()); // change void lines
-		}
-
-		// define time : the longest animation
-		characters["Lola"].timer.event_period = calculate_animation_duration();*/
 	}
 
 	// Hangle end of gui mode
 	if(old_sketch_mode != gui.sketch_mode){
 		// entering in normal mode from sketch mode
 		if(old_sketch_mode) {
-				stop_delete_mode();
+			stop_delete_mode();
 			
-				build_empty_motions();
+			build_empty_motions();
 
-				update_character();
-				sketch_drawable.clear();	
+			update_character();
+			sketch_drawable.clear();
 
 			// the animation begins again
 			characters["Lola"].timer.scale = tmp_scale;

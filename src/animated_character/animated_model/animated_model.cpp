@@ -111,28 +111,12 @@ void animated_model_structure::set_skeleton_from_animation(std::string const& an
 
 void animated_model_structure::set_skeleton_from_ending_joints(Motion m, float t)
 {
-    std::cout<<"here 0"<<std::endl;
 
     for(int k=0; k<m.chain.size()-1; k++) {
-        std::cout<<"here 0 a"<<std::endl;
         int joint = m.chain[k];
-        std::cout<<"here 0 b"<<std::endl;
-        mat4 M = m.evaluate_end(k, t); // prbl ici
-        std::cout<<"here 0 c"<<std::endl;
+        mat4 M = m.evaluate_end(k, t);
         skeleton.joint_matrix_local[joint] = M;
-        std::cout<<"here 0 d"<<std::endl;
     }
-
-    std::cout<<"here 1"<<std::endl;
-
-    skeleton.update_joint_matrix_local_to_global();
-
-    if(m.impacts.size() > 0 && m.get_step_from_time(t) >= m.N_pos_before) { 
-        // manage impacts
-        set_skeleton_from_motion_impacts(m);
-    }
-
-    std::cout<<"here 2"<<std::endl;
 
     skeleton.update_joint_matrix_local_to_global();
 }
@@ -239,7 +223,6 @@ void animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
 
 }
 
-
 void animated_model_structure::set_skeleton_from_motion_joint_ik(Motion& m, float t)
 {
 
@@ -256,14 +239,29 @@ void animated_model_structure::set_skeleton_from_motion_joint_ik(Motion& m, floa
     // compute the inverse kinematics
     ik_compute(effect_ik, skeleton, m.is_constrained);
 
-    if(m.impacts.size() > 0 && m.get_step_from_time(t) >= m.N_pos_before) { 
+
+    // do not add "bouncing" on the same joint
+    bool same_id = false;
+    for (const auto& impact_pair : m.impacts){        
+        int impact_joint_id = impact_pair.first;
+    
+        if (m.joint_id == impact_joint_id) {
+            same_id = true;
+            break;
+        }
+    }
+
+    if(m.impacts.size() > 0 && !same_id && t >= m.times[m.N_pos_before]) { 
+
         // manage impacts
+        skeleton.update_joint_matrix_local_to_global();
         set_skeleton_from_motion_impacts(m);
     }
 
     skeleton.update_joint_matrix_local_to_global();
    
 }
+
 
 
 void animated_model_structure::set_skeleton_from_motion_joint(Motion m, float t)
