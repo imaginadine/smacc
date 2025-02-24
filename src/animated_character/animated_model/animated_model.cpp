@@ -111,13 +111,28 @@ void animated_model_structure::set_skeleton_from_animation(std::string const& an
 
 void animated_model_structure::set_skeleton_from_ending_joints(Motion m, float t)
 {
+    std::cout<<"here 0"<<std::endl;
+
     for(int k=0; k<m.chain.size()-1; k++) {
+        std::cout<<"here 0 a"<<std::endl;
         int joint = m.chain[k];
-        mat4 M = m.evaluate_end(k, t);
+        std::cout<<"here 0 b"<<std::endl;
+        mat4 M = m.evaluate_end(k, t); // prbl ici
+        std::cout<<"here 0 c"<<std::endl;
         skeleton.joint_matrix_local[joint] = M;
+        std::cout<<"here 0 d"<<std::endl;
     }
-    //skeleton.update_joint_matrix_local_to_global_from_id(m.joint_id);
-    //skeleton.update_joint_matrix_global_to_local();
+
+    std::cout<<"here 1"<<std::endl;
+
+    skeleton.update_joint_matrix_local_to_global();
+
+    if(m.impacts.size() > 0 && m.get_step_from_time(t) >= m.N_pos_before) { 
+        // manage impacts
+        set_skeleton_from_motion_impacts(m);
+    }
+
+    std::cout<<"here 2"<<std::endl;
 
     skeleton.update_joint_matrix_local_to_global();
 }
@@ -132,7 +147,7 @@ void animated_model_structure::set_skeleton_from_motion_all(Motion& m, float t)
     skeleton.joint_matrix_local[0] = skeleton.joint_matrix_global[0];
     skeleton.update_joint_matrix_local_to_global();
 
-    if(m.impacts.size() > 0 && m.step_with_impact > 0 && m.get_step_from_time(t) >= m.step_with_impact) { 
+    if(m.impacts.size() > 0 && m.get_step_from_time(t) >= m.N_pos_before) { 
         // manage impacts
         set_skeleton_from_motion_impacts(m);
     }
@@ -225,7 +240,7 @@ void animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
 }
 
 
-void animated_model_structure::set_skeleton_from_motion_joint_ik(Motion& m, float t, numarray<int> stop_ids)
+void animated_model_structure::set_skeleton_from_motion_joint_ik(Motion& m, float t)
 {
 
     int k = m.joint_id;
@@ -241,30 +256,13 @@ void animated_model_structure::set_skeleton_from_motion_joint_ik(Motion& m, floa
     // compute the inverse kinematics
     ik_compute(effect_ik, skeleton, m.is_constrained);
 
-    // if flexible
-    if(m.method == 2) {
-        // first time, t=0
-        if(skeleton_t0.joint_matrix_global.size()==0) {
-            skeleton.update_joint_matrix_local_to_global();
-            skeleton_t0 = skeleton;
-        } else {
-            numarray<float> children_dist_to_keep = get_distances_to_children(skeleton_t0, k);
-            set_skeleton_from_t0(k); // update to t=0.0f the external part
-            give_follow_through(skeleton, k, children_dist_to_keep, skeleton_t0.joint_matrix_global[k].get_block_translation()); // give follow-through to the external part
-            skeleton.update_joint_matrix_local_to_global_except_ids(stop_ids); // update the other parts (i.e. not the IK chain and not the external part)
-        } 
-    } else {
-        if(m.impacts.size() > 0 && m.step_with_impact > 0 && m.get_step_from_time(t) >= m.step_with_impact) { 
-            // manage impacts
-            skeleton.update_joint_matrix_local_to_global();
-            set_skeleton_from_motion_impacts(m);
-
-        }
+    if(m.impacts.size() > 0 && m.get_step_from_time(t) >= m.N_pos_before) { 
+        // manage impacts
+        set_skeleton_from_motion_impacts(m);
     }
 
     skeleton.update_joint_matrix_local_to_global();
    
-
 }
 
 

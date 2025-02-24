@@ -36,7 +36,6 @@ class Motion {
 		cgp::numarray<cgp::numarray<cgp::mat4>> all_local_joints_after;
 
 		std::map<int, cgp::vec3> impacts; // id joint impacted | pos the impact joint
-		int step_with_impact = 0;
 		float t_impact = -1.f;
 		bool is_constrained = false;
 
@@ -57,7 +56,7 @@ class Motion {
 
 		void clear();
 
-		virtual void find_positions(skeleton_structure skeleton, cgp::vec3 t_source, cgp::camera_projection_perspective const& P, cgp::mat4 const& camera_view_inverse);
+		virtual void find_positions(skeleton_structure skeleton, cgp::vec3 t_source);
 		void find_distances();
 
 		void set_joint_root_ik(int id_root);

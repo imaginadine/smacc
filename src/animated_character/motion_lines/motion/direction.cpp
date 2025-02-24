@@ -3,7 +3,36 @@
 using namespace cgp;
 
 
-void Direction::find_positions(skeleton_structure skeleton, vec3 t_source, camera_projection_perspective const& P, mat4 const& camera_view_inverse)
+void Direction::find_positions(skeleton_structure skeleton, vec3 t_source)
+{
+    line_structure dir_line = get_median_line(skeleton);
+
+    calculate_speed();
+    std::cout<<"v = "<<v<<std::endl;
+
+    std::cout<<"dir dir"<<std::endl;
+
+    N_pos_before = dir_line.samples.size()-1;
+    
+    int N_pos_total = N_pos_before+1;
+    positions_to_follow.resize(N_pos_total);
+
+    // position of movement
+    positions_to_follow[N_pos_before] = t_source;
+
+    vec3 correction = t_source - dir_line.samples[dir_line.samples.size()-1];
+
+    // before the movement
+    for(int i=0; i<N_pos_before;i++){
+        positions_to_follow[i] = dir_line.samples[i] + correction;
+    }
+
+    // find distances between the positions
+    find_distances();
+}
+
+
+void Direction::find_positions_global(skeleton_structure skeleton, vec3 t_source, camera_projection_perspective const& P, mat4 const& camera_view_inverse)
 {
     line_structure dir_line = get_median_line(skeleton);
 
@@ -14,7 +43,7 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source, camer
 
     N_pos_before = dir_line.samples.size();
     
-    int N_pos_total = N_pos_before + 10; // N_pos_total > (N_pos_before + 1)
+    int N_pos_total = N_pos_before + 15; // N_pos_total > (N_pos_before + 1)
     positions_to_follow.resize(N_pos_total);
 
     // position of movement
@@ -34,53 +63,37 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source, camer
 
     // case of close start and end
     if (norm(dir_line.samples[dir_line.samples.size()-1] - dir_line.samples[0]) < 0.1f && dir_line.get_length() > 0.3f) {
-        //std::cout<<"boucle"<<std::endl;
+        std::cout<<"boucle"<<std::endl;
+        
+        // same position
+        for (int i=0 ; i < N_pos_total; i++) {
+            positions_to_follow[i] = t_source;
+        }
 
-        // continue the loop if local
-        if (lines[0].type_motion == Line_type::DirT) {
+        // the axis equals (0;0;0), compute it again with half of the points
+        line_structure half_line = dir_line;
+        half_line.samples.resize(dir_line.samples.size()/2);
+        half_line.angular_velocity(axis, magnitude);
 
-            N_pos_total = N_pos_before + dir_line.samples.size()/2; 
-            positions_to_follow.resize(N_pos_total);
+        // the rotation is around the circle axis
+        rotation_transform rt_spinning = rotation_transform::from_axis_angle(axis, magnitude * 0.03f);
 
-            // repeated movement, after = before
-            for(int i = N_pos_before+1 ; i < N_pos_total; i++){
-                positions_to_follow[i] = dir_line.samples[i - N_pos_before - 1] + correction;
-            }
-
-        // global spinning
-        } else {
-            
-            // same position
-            for (int i=0 ; i < N_pos_total; i++) {
-                positions_to_follow[i] = t_source;
-            }
-
-            // the axis equals (0;0;0), compute it again with half of the points
-            line_structure half_line = dir_line;
-            half_line.samples.resize(dir_line.samples.size()/2);
-            half_line.angular_velocity(axis, magnitude);
-
-            // the rotation is around the circle axis
-            rotation_transform rt_spinning = rotation_transform::from_axis_angle(axis, magnitude * 0.03f);
-
-            joints.resize(N_pos_total);
-            // pose
-            joints[N_pos_before] = skeleton.joint_matrix_global[joint_id];
-            // before
-            for(int i=N_pos_before-1; i >= 0; i--) {
-                mat4 centered_joint = joints[i+1];
-                centered_joint.apply_translation(-t_source); // /!\ need to turn around the root joint
-                joints[i] = inverse(rt_spinning) * centered_joint;
-                joints[i].apply_translation(t_source);
-            }
-            // after
-            for(int i=N_pos_before+1; i < N_pos_total; i++) {
-                mat4 centered_joint = joints[i-1];
-                centered_joint.apply_translation(-t_source); // /!\ need to turn around the root joint
-                joints[i] = rt_spinning * centered_joint;
-                joints[i].apply_translation(t_source);
-            }
-
+        joints.resize(N_pos_total);
+        // pose
+        joints[N_pos_before] = skeleton.joint_matrix_global[joint_id];
+        // before
+        for(int i=N_pos_before-1; i >= 0; i--) {
+            mat4 centered_joint = joints[i+1];
+            centered_joint.apply_translation(-t_source); // /!\ need to turn around the root joint
+            joints[i] = inverse(rt_spinning) * centered_joint;
+            joints[i].apply_translation(t_source);
+        }
+        // after
+        for(int i=N_pos_before+1; i < N_pos_total; i++) {
+            mat4 centered_joint = joints[i-1];
+            centered_joint.apply_translation(-t_source); // /!\ need to turn around the root joint
+            joints[i] = rt_spinning * centered_joint;
+            joints[i].apply_translation(t_source);
         }
 
     } else {
@@ -134,6 +147,7 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source, camer
 }
 
 
+
 numarray<mat4> Direction::get_joints_in_chain(numarray<mat4> skeleton_joints)
 {
     numarray<mat4> joints_in_chain;
@@ -180,45 +194,81 @@ quaternion slerp(const quaternion& q1, const quaternion& q2, float t) {
 }
 
 
+numarray<numarray<vec3>> Direction::compute_angle_velocities(animated_model_structure& animated_model, numarray<mat4>& root_global_joints)
+{
+    root_global_joints.resize_clear(0);
+
+    numarray<numarray<vec3>> all_angle_vel;
+    all_angle_vel.resize(times.size()-1);
+
+    // initialize local_joints_before at t=0
+    animated_model.set_skeleton_from_animation("Idle", 0.0f);
+    animated_model.set_skeleton_from_motion_joint_ik(*this, 0.0f);
+    numarray<mat4> local_joints_before = get_joints_in_chain(animated_model.skeleton.joint_matrix_local);
+
+    int N_time = times.size();
+    for (int k_time=1 ; k_time< N_time; k_time++) {
+
+        // dt from the end
+        float dt = times[N_time - k_time] - times[N_time - k_time - 1];
+
+        // put the skeleton in its current pose
+        animated_model.set_skeleton_from_animation("Idle", 0.0f);
+        animated_model.set_skeleton_from_motion_joint_ik(*this, times[k_time]);
+
+        root_global_joints.push_back(animated_model.skeleton.joint_matrix_global[animated_model.skeleton.parent_index[joint_root_ik]]);
+
+        // save the joints at this current position
+        numarray<mat4> local_joints_now = get_joints_in_chain(animated_model.skeleton.joint_matrix_local);
+
+        all_angle_vel[k_time-1].resize(chain.size());
+        // for each joint in the ik_chain of the motion
+        for (int k_joint = 0; k_joint < chain.size(); k_joint++) {
+            // extract angular velocity from IK motion
+
+            // extract the local orientation at time step t - dt
+            mat3 orientation_before = local_joints_before[k_joint].get_block_linear();
+            rotation_transform rt_before = rotation_transform::from_matrix(orientation_before);
+            // extract the local orientation at time step t
+            mat3 orientation_now = local_joints_now[k_joint].get_block_linear();
+            rotation_transform rt_now = rotation_transform::from_matrix(orientation_now);
+            // compute the relative rotation between two consecutive frames
+            rotation_transform relative_rt = inverse(rt_before) * rt_now;
+            // compute the angular velocity
+            vec3 axis;
+            float angle;
+            relative_rt.to_axis_angle(axis, angle);
+            
+            vec3 ang_vel = (2.f*axis*angle/dt) * 0.5f;
+            if (std::abs(angle) < 1e-6f) {
+                ang_vel = vec3(0.0f, 0.0f, 0.0f);
+            }
+
+            all_angle_vel[k_time-1][k_joint] = ang_vel;
+        }
+
+        // update before joints
+        local_joints_before = local_joints_now;
+    }
+
+    return all_angle_vel;
+}
 
 
-void Direction::find_after_joints(float t_stop, animated_model_structure& animated_model, numarray<Motion> ordered_motions, numarray<int> all_joint_ids)
+void Direction::find_after_joints(float t_stop, animated_model_structure& animated_model)
 {
     t_end = t_stop;
-    //float dt_after = times[N_pos_before] - times[N_pos_before-1];
-    float dt_after = 0.1f*times[N_pos_before];
-    std::cout<<"dt_after = "<<dt_after<<std::endl;
-    //float dt_after = 0.1f;
-    float dt_initial = dt_after;
 
     all_local_joints_after.resize_clear(0);
 
     float t = times[N_pos_before];
 
-    // 1) put the skeleton in the pose at time t - dt
-    animated_model.set_skeleton_from_animation("Idle", 0.0f);
-        
-    int i=0;
-	while(i<ordered_motions.size() && ordered_motions[i].joint_id>=joint_id ){
-		if (ordered_motions[i].joint_id != 0) {
-			animated_model.set_skeleton_from_motion_joint_ik(ordered_motions[ordered_motions.size()-1-i], t - dt_after, all_joint_ids);
-		}
-        i++;
-	}
-
-    // 2) save the 3D orientations in its IK chain at this moment (locally)
-    numarray<mat4> local_joints_before = get_joints_in_chain(animated_model.skeleton.joint_matrix_local);
+    numarray<mat4> root_global_joints;
+    numarray<numarray<vec3>> all_angle_vel = compute_angle_velocities(animated_model, root_global_joints);
 
     // 3) Put the skeleton at the end of the motion line
     animated_model.set_skeleton_from_animation("Idle", 0.0f);
-        
-    i=0;
-	while(i<ordered_motions.size() && ordered_motions[i].joint_id>=joint_id ){
-		if (ordered_motions[i].joint_id != 0) {
-			animated_model.set_skeleton_from_motion_joint_ik(ordered_motions[ordered_motions.size()-1-i], t, all_joint_ids);
-		}
-        i++;
-	}
+	animated_model.set_skeleton_from_motion_joint_ik(*this, t);
 
     // 4) save the joints at this current position
     numarray<mat4> local_joints_now = get_joints_in_chain(animated_model.skeleton.joint_matrix_local);
@@ -226,69 +276,59 @@ void Direction::find_after_joints(float t_stop, animated_model_structure& animat
     numarray<mat4> local_joints_after;
     all_local_joints_after.push_back(local_joints_now);
 
-    float alpha = 0.2f;
-    int k = N_pos_before;
-    while(k < times.size()) {
+    int N_time = all_angle_vel.size();
+    for (int k_time = 1; k_time < N_time ; k_time++) {
 
-        // 5) compute angular velocity for each joint in the IK chain
+        // compute dt
+        float dt = times[N_time - k_time] - times[N_time - k_time - 1];
 
-            for (int i = 0; i < chain.size(); i++) {
-                // a) extract angular velocity from IK motion
+        // add a time
+        times.push_back(times[times.size()-1] + dt);
 
-                // extract the local orientation at time step t - dt
-                mat3 orientation_before = local_joints_before[i].get_block_linear();
-                rotation_transform rt_before = rotation_transform::from_matrix(orientation_before);
-                // extract the local orientation at time step t
-                mat3 orientation_now = local_joints_now[i].get_block_linear();
-                rotation_transform rt_now = rotation_transform::from_matrix(orientation_now);
-                quaternion q_now = rt_now.get_quaternion();
-                // compute the relative rotation between two consecutive frames
-                rotation_transform relative_rt = inverse(rt_before) * rt_now;
-                // compute the angular velocity
-                vec3 axis;
-                float angle;
-                relative_rt.to_axis_angle(axis, angle);
-                vec3 ang_vel = (2.f*axis*angle/dt_after) * 0.5f * (1.0f - alpha * (t - times[N_pos_before]));
-                if (std::abs(angle) < 1e-6f) {
-                    ang_vel = vec3(0.0f, 0.0f, 0.0f);
-                }
+        mat4 global_joint = root_global_joints[k_time - 1];
+        // compute the local joints after
+        for (int i = 0; i < chain.size(); i++) {
+            
+            // extract the local orientation at time step t
+            mat3 orientation_now = local_joints_now[i].get_block_linear();
+            rotation_transform rt_now = rotation_transform::from_matrix(orientation_now);
+            quaternion q_now = rt_now.get_quaternion();
 
-                // b) propagate the motion with forward kinematics
-                quaternion pure_ang_vel = quaternion(ang_vel, 0.f);
-                quaternion deriv_q = 0.5f * q_now * pure_ang_vel;
-                /*quaternion q_after = q_now + deriv_q * dt_after;
-                q_after = normalize(q_after);*/
-                quaternion q_after = slerp(q_now, normalize(q_now + deriv_q * dt_after), 1.0f);
-                if (dot(q_after, q_now) < 0.0f) {
-                    q_after = -1.0f*q_after;  // Flip to ensure shortest path
-                }
-
-
-                // c) put the new orientation to the joint after!
-                mat4 joint_after = local_joints_now[i];
-                joint_after.set_block_linear(rotation_transform(q_after).matrix());
-
-                local_joints_after.push_back(joint_after);
+            // propagate the motion with forward kinematics
+            vec3 ang_vel = all_angle_vel[k_time-1][i];
+            quaternion pure_ang_vel = quaternion(ang_vel, 0.f);
+            quaternion deriv_q = 0.5f * q_now * pure_ang_vel;
+            /*quaternion q_after = q_now + deriv_q * dt_after;
+            q_after = normalize(q_after);*/
+            quaternion q_after = slerp(q_now, normalize(q_now + deriv_q * dt), 1.0f);
+            if (dot(q_after, q_now) < 0.0f) {
+                q_after = -1.0f*q_after;  // Flip to ensure shortest path
             }
+
+            // put the new orientation to the joint after!
+            mat4 joint_after = local_joints_now[i];
+            joint_after.set_block_linear(rotation_transform(q_after).matrix());
+
+            local_joints_after.push_back(joint_after);
+
+            // calculate the global
+            global_joint = global_joint * joint_after;
+        }
 
         // put in the big matrix
         all_local_joints_after.push_back(local_joints_after);
 
-        // **Update time step (dt_after decreases over time)**
-        //dt_after = dt_initial * (1.0f - alpha * (t - times[N_pos_before]));
-        //dt_after = std::max(dt_after, 0.001f);  // Prevent too small dt
+        // add the global position of joint_id to the positions to follow
+        positions_to_follow.push_back(global_joint.get_block_translation());
 
         // update before / now / after
-        local_joints_before = local_joints_now;
         local_joints_now = local_joints_after;
         local_joints_after.resize_clear(0);
-        // next frame
-        t += dt_after;
-        times[k] = t;
-        k ++;
-    }
 
-    std::cout<<times<<std::endl;
+        // find the new distances
+        find_distances();
+       
+    }
 
 }
 
@@ -384,43 +424,14 @@ numarray<line_structure> Direction::is_impacted(numarray<line_structure> impact_
 /*
     pre-condition: ordered motions and times with a=0 have been computed
 */
-void Direction::precompute_positions_with_impacts(animated_model_structure& animated_model, numarray<Motion> ordered_motions, numarray<int> all_joint_ids, bool is_global)
+void Direction::precompute_positions_with_impacts_global(animated_model_structure& animated_model)
 {
-    bool impact_passed=false;
-    int max_front_step = positions_to_follow.size() - 1;
-    numarray<vec3> new_positions;
-    new_positions.push_back(positions_to_follow[0]);
-    int impact_step_tmp = positions_to_follow.size() - 1;
-
-    int nb_steps_front = 10;
-    int nb_steps_back = 5;
-
-    // 0) if there is already a motion of "boing", delete it
-    if (positions_to_follow[max_front_step].x == positions_to_follow[max_front_step - 2*nb_steps_back].x && positions_to_follow[max_front_step].y == positions_to_follow[max_front_step - 2*nb_steps_back].y && positions_to_follow[max_front_step].z == positions_to_follow[max_front_step - 2*nb_steps_back].z) {
-        positions_to_follow.resize(positions_to_follow.size() - nb_steps_back);
-    }
-
 
     // 1) Put the character in its current pose
-
     animated_model.set_skeleton_from_animation("Idle", 0.0f);
-        
-    int i=0;
-	while(i<ordered_motions.size() && ordered_motions[i].joint_id!=joint_id ){
-		if (ordered_motions[i].joint_id != 0) {
-			animated_model.set_skeleton_from_motion_joint_ik(ordered_motions[ordered_motions.size()-1-i], times[0], all_joint_ids);
-		}
-        i++;
-	}
+    animated_model.set_skeleton_from_motion_all(*this, times[0]);
 
-    // 2) Compute initial distance to impact
-    if(!is_global) {
-        animated_model.set_skeleton_from_motion_joint_ik(*this, times[0], all_joint_ids);
-    } else {
-        animated_model.set_skeleton_from_motion_all(*this, times[0]);
-    }
-    
-
+    // 2) Compute initial distance to impact to find which impact id we should use
     int impact_joint_id = 0;
     vec3 pos_impact_joint, pos_impact_drawn; 
     float initial_d = 10000.f; // take the minimum distance
@@ -438,95 +449,159 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
         }
     }
 
-    for (int step=1; step < positions_to_follow.size(); step++)
-    {
+    // case of impact on same joint: just stop there
+    if (joint_id == impact_joint_id) {
+        positions_to_follow.resize(N_pos_before + 1);
+    } else {
+
+        int nb_steps_front = 10;
+        if(nb_steps_front > positions_to_follow.size()) nb_steps_front = positions_to_follow.size();
+        int nb_steps_back = 5;
+        int max_front_step = N_pos_before - 1 + nb_steps_front;
+        std::cout<<"nb front steps = "<<nb_steps_front<<" | max front steps = "<<max_front_step<<std::endl;
+
+        numarray<vec3> new_positions = positions_to_follow;
+        new_positions.resize(N_pos_before);
+
         // 1) Put the character in its current pose
         animated_model.set_skeleton_from_animation("Idle", 0.0f);
-        
-        int i=0;
-		while(i<ordered_motions.size() && ordered_motions[i].joint_id!=joint_id){
-			if (ordered_motions[i].joint_id != 0) {
-				animated_model.set_skeleton_from_motion_joint_ik(ordered_motions[ordered_motions.size()-1-i], times[step], all_joint_ids);
-			}
-            i++;
-		}
+        animated_model.set_skeleton_from_motion_all(*this, times[0]);
 
-        // 3) Compute IK without impact
-        if(!is_global) {
-            animated_model.set_skeleton_from_motion_joint_ik(*this, times[step], all_joint_ids);
-        } else {
+        int step=N_pos_before;
+        while (step <= positions_to_follow.size() && step <= max_front_step)
+        {
+            // Put the character in its pose
+            animated_model.set_skeleton_from_animation("Idle", 0.0f);
             animated_model.set_skeleton_from_motion_all(*this, times[step]);
-        }
 
-        // 4) Compute the distance between impact_joint and the impact
-        if (!impact_passed) {
-
-            vec3 pos_impact_joint_now = animated_model.skeleton.joint_matrix_global[impact_joint_id].get_block_translation();
-            float d = norm(pos_impact_joint_now - pos_impact_drawn);
-
-            // if we are on the impact
-            if ( d < initial_d/1000.f ) {
-                impact_passed = true;
-                impact_step_tmp = step+1;
-            } 
-        }
-
-
-        // case of impact on same joint: just stop there
-        if (impact_passed && joint_id == impact_joint_id) {
-            break;
-        }
-
-        if (impact_passed && step <= max_front_step) {
-            
-            // 5) If reachable:
+            // If reachable:
             if(animated_model.is_reachable_from_motion_impacts(*this, impact_joint_id, pos_impact_drawn)){
                 // Compute the skeleton with the impact, with the Inverse of IK
                 animated_model.set_skeleton_from_motion_impacts(*this);
-                if(step + nb_steps_front < max_front_step){
-                    // add nb_steps_front next steps
-                    max_front_step = step + nb_steps_front;
-                }
             } else {
-                // stop here
+                 // stop here
                 max_front_step = step;
                 new_positions.resize(step);
             }
 
-        }
-
-        // 7) Add positions
-        if (step == max_front_step ) { // && joint_id != impact_joint_id
-            new_positions.push_back(positions_to_follow[step]);
-            // go back
-            for(int i=1; i<=nb_steps_back; i++) {
-                if (step-i >= 0) {
-                    new_positions.push_back(positions_to_follow[step-i]);
+            if(step==max_front_step) {
+                // Add positions
+                new_positions.push_back(positions_to_follow[step]);
+                // go back
+                for(int i=1; i<=nb_steps_back; i++) {
+                    if (step-i >= 0) {
+                        new_positions.push_back(positions_to_follow[step-i]);
+                    }
                 }
+            } else {
+                new_positions.push_back(positions_to_follow[step]);
             }
-            
-            break;
 
-        } else if (step < max_front_step) {
-            new_positions.push_back(positions_to_follow[step]);
+            step++;
         }
-            
+
+        // 8) Update new positions_to_follow
+        positions_to_follow.clear();
+        positions_to_follow = new_positions;
 
     }
 
-    // 8) Update new positions_to_follow
-    positions_to_follow.clear();
-    positions_to_follow = new_positions;
-    
-    this->step_with_impact = impact_step_tmp; // at the end, put this
-
     // find distances between the positions
     find_distances();
+
+}
+
+/*
+    pre-condition: ordered motions and times with a=0 have been computed
+*/
+void Direction::precompute_positions_with_impacts_local(animated_model_structure& animated_model)
+{
+
+    std::cout<<"in here at least?"<<std::endl;
+
+    // 1) Put the character in its current pose
+    animated_model.set_skeleton_from_animation("Idle", 0.0f);
+    animated_model.set_skeleton_from_motion_joint_ik(*this, times[0]);
+
+    // 2) Compute initial distance to impact to find which impact id we should use
+    int impact_joint_id = 0;
+    vec3 pos_impact_joint, pos_impact_drawn; 
+    float initial_d = 10000.f; // take the minimum distance
+    for (const auto& impact_pair : impacts){ // do with the lines directly instead
+        
+        int tmp_impact_joint_id = impact_pair.first;
+        vec3 tmp_pos_impact_joint = animated_model.skeleton.joint_matrix_global[tmp_impact_joint_id].get_block_translation();
+        vec3 tmp_pos_impact_drawn = impact_pair.second;
+
+        if (norm(tmp_pos_impact_joint - tmp_pos_impact_drawn) < initial_d) {
+            impact_joint_id = tmp_impact_joint_id;
+            pos_impact_joint = tmp_pos_impact_joint;
+            pos_impact_drawn = tmp_pos_impact_drawn;
+            initial_d = norm(pos_impact_joint - pos_impact_drawn);
+        }
+    }
+
+    if (joint_id != impact_joint_id) {
+
+        int nb_steps_front = 10;
+        if(nb_steps_front > positions_to_follow.size()) nb_steps_front = positions_to_follow.size();
+        int nb_steps_back = 5;
+        int max_front_step = N_pos_before - 1 + nb_steps_front;
+        std::cout<<"nb front steps = "<<nb_steps_front<<" | max front steps = "<<max_front_step<<std::endl;
+        
+        numarray<vec3> new_positions = positions_to_follow;
+        new_positions.resize(N_pos_before+1);
+
+        // Put the character in its current pose
+        animated_model.set_skeleton_from_animation("Idle", 0.0f);
+        animated_model.set_skeleton_from_motion_joint_ik(*this, times[0]);
+
+        int step=N_pos_before+1;
+        while (step <= positions_to_follow.size() && step <= max_front_step)
+        {
+            // Put the character in its pose
+            animated_model.set_skeleton_from_animation("Idle", 0.0f);
+            animated_model.set_skeleton_from_motion_joint_ik(*this, times[step]);
+
+            // If reachable:
+            if(animated_model.is_reachable_from_motion_impacts(*this, impact_joint_id, pos_impact_drawn)){
+                // Compute the skeleton with the impact, with the Inverse of IK
+                animated_model.set_skeleton_from_motion_impacts(*this);
+            } else {
+                 // stop here
+                max_front_step = step;
+                new_positions.resize(step);
+            }
+
+            if(step==max_front_step) {
+                // Add positions
+                new_positions.push_back(positions_to_follow[step]);
+                // go back
+                for(int i=1; i<=nb_steps_back; i++) {
+                    if (step-i >= 0) {
+                        new_positions.push_back(positions_to_follow[step-i]);
+                    }
+                }
+            } else {
+                new_positions.push_back(positions_to_follow[step]);
+            }
+
+            step++;
+        }
+
+        // Update new positions_to_follow
+        positions_to_follow.clear();
+        positions_to_follow = new_positions;
+        
+        // find distances between the positions
+        find_distances();
+    }
+
     
 }
 
 
-void Direction::update_impact(float t_drawn, numarray<line_structure> impacting_lines, animated_model_structure& animated_model, numarray<Motion> motions, numarray<int> all_joint_ids, bool is_global)
+void Direction::update_impact(float t_drawn, numarray<line_structure> impacting_lines, animated_model_structure& animated_model, numarray<Motion> motions, bool is_global)
 {
     // re compute the skeleton initial movement
     a = 0.0f;
@@ -538,28 +613,29 @@ void Direction::update_impact(float t_drawn, numarray<line_structure> impacting_
 
     if (t_impact < t_drawn) {
         t_impact = t_drawn;
-        // not necessary to insert positions because we're taking the positions from Idle
-        //int step = get_step_from_time(t_impact);
-        //insert_position(animated_model.skeleton.joint_matrix_global[joint_id].get_block_translation(), step, animated_model.skeleton);
     }
 
-    precompute_positions_with_impacts(animated_model, motions, all_joint_ids, is_global);
-
+    if(is_global) {
+        precompute_positions_with_impacts_global(animated_model);
+    } else {
+        precompute_positions_with_impacts_local(animated_model);
+    }
+    
     a = 0.7f;
     animate_motion_to_joint(animated_model.skeleton);
     
 }
 
-void Direction::check_impact(float t_drawn, numarray<line_structure> impact_lines, animated_model_structure& animated_model, numarray<Motion> motions, numarray<int> all_joint_ids)
+void Direction::check_impact(float t_drawn, numarray<line_structure> impact_lines, animated_model_structure& animated_model, numarray<Motion> motions)
 {
     numarray<line_structure> impacting_lines = is_impacted(impact_lines, animated_model.skeleton);
     // if there is an impact on the motion and it's a new one
     if (impacts.size() < impacting_lines.size()) { 
-        update_impact(t_drawn, impacting_lines, animated_model, motions, all_joint_ids, false);
+        update_impact(t_drawn, impacting_lines, animated_model, motions, false);
     }
 }
 
-void Direction::check_impact_global(float t_drawn, numarray<line_structure> impact_lines, numarray<Direction> dir_motions, animated_model_structure& animated_model, numarray<Motion> motions, numarray<int> all_joint_ids)
+void Direction::check_impact_global(float t_drawn, numarray<line_structure> impact_lines, numarray<Direction> dir_motions, animated_model_structure& animated_model, numarray<Motion> motions)
 {
     numarray<line_structure> impacting_lines;
     numarray<int> not_impact_ids; // the impacts already used by other motions
@@ -576,13 +652,13 @@ void Direction::check_impact_global(float t_drawn, numarray<line_structure> impa
     }
     // update the global motion with the good ids
     if (impacting_lines.size() > 0) {
-        update_impact(t_drawn, impacting_lines, animated_model, motions, all_joint_ids, true);
+        update_impact(t_drawn, impacting_lines, animated_model, motions, true);
     }
 }
 
-void Direction::update_dirs_with_impacts(float t_drawn, numarray<Direction>& dir_motions, numarray<line_structure> impact_lines, animated_model_structure& animated_model, numarray<Motion> motions, numarray<int> all_joint_ids) 
+void Direction::update_dirs_with_impacts(float t_drawn, numarray<Direction>& dir_motions, numarray<line_structure> impact_lines, animated_model_structure& animated_model, numarray<Motion> motions) 
 {
     for (Direction& dir : dir_motions) {
-        dir.check_impact(t_drawn, impact_lines, animated_model, motions, all_joint_ids);
+        dir.check_impact(t_drawn, impact_lines, animated_model, motions);
     }
 }

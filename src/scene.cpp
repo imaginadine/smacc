@@ -140,23 +140,17 @@ void scene_structure::update_character()
 	// update / find the new root ik joints
 	update_root_iks();
 
-	// update all joint ids
-	all_joint_ids.clear();
-	for(Motion m : motion_dirs){
-		all_joint_ids.push_back(m.joint_id);
-	}
-
 	// Animate the motions
 	for(Direction& dir_m : motion_dirs){
-		dir_m.find_positions(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[dir_m.joint_id].get_block_translation(), camera_projection, camera_control.camera_model.matrix_frame());
+		dir_m.find_positions(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[dir_m.joint_id].get_block_translation());
 		dir_m.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
 	}
 	for(Cue& cue_m : motion_cues){
-		cue_m.find_positions(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[cue_m.joint_id].get_block_translation(), camera_projection, camera_control.camera_model.matrix_frame());
+		cue_m.find_positions(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[cue_m.joint_id].get_block_translation());
 		cue_m.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
 	}
 	if(global_motion.lines.size()>0){
-		global_motion.find_positions(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[global_motion.joint_id].get_block_translation(), camera_projection, camera_control.camera_model.matrix_frame());
+		global_motion.find_positions_global(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[global_motion.joint_id].get_block_translation(), camera_projection, camera_control.camera_model.matrix_frame());
 		global_motion.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
 	}
 
@@ -165,15 +159,16 @@ void scene_structure::update_character()
 
 	// End of direction motions
 	for(Direction& dir_m : motion_dirs){
-		dir_m.find_after_joints(dir_m.times[dir_m.N_pos_before] + 0.5f, characters["Lola"].animated_model, motions, all_joint_ids); // t_end, dt_before, ...
+		dir_m.find_after_joints(dir_m.times[dir_m.N_pos_before] + 0.5f, characters["Lola"].animated_model); // t_end, dt_before
+		std::cout<<"size all after joints for motion id "<<dir_m.joint_id<<" : "<<dir_m.all_local_joints_after.size()<<" x "<<dir_m.all_local_joints_after[0].size()<<std::endl;
 	}
 
 	// manage impacts
 	if (impact_lines.size()>0) {
-		Direction::update_dirs_with_impacts(characters["Lola"].timer.t_periodic, motion_dirs, impact_lines, characters["Lola"].animated_model, motions, all_joint_ids);
+		Direction::update_dirs_with_impacts(characters["Lola"].timer.t_periodic, motion_dirs, impact_lines, characters["Lola"].animated_model, motions);
 	}
 	if(global_motion.lines.size()>0) {
-		global_motion.check_impact_global(characters["Lola"].timer.t_periodic, impact_lines, motion_dirs, characters["Lola"].animated_model, motions, all_joint_ids);
+		global_motion.check_impact_global(characters["Lola"].timer.t_periodic, impact_lines, motion_dirs, characters["Lola"].animated_model, motions);
 	}
 
 	// order the motions to know which is calculated first
@@ -270,10 +265,11 @@ void scene_structure::display_frame()
 			for(int i=0; i<motions.size();i++){
 				Motion motion_used = motions[motions.size()-1-i];
 				if (motion_used.joint_id != 0) {
-					if (character.timer.t_periodic <= motion_used.times[motion_used.N_pos_before]) {
-						character.animated_model.set_skeleton_from_motion_joint_ik(motion_used, character.timer.t_periodic, all_joint_ids);
-					} else {
+					// we continue the line with the movement based on the angles of before, IF it's a direction with no impacts
+					if (motion_used.lines[0].type_motion == Line_type::DirT && character.timer.t_periodic > motion_used.times[motion_used.N_pos_before] && motion_used.impacts.size() == 0) {
 						character.animated_model.set_skeleton_from_ending_joints(motion_used, character.timer.t_periodic);
+					} else {
+						character.animated_model.set_skeleton_from_motion_joint_ik(motion_used, character.timer.t_periodic);
 					}
 				}
 			}

@@ -132,14 +132,15 @@ float Motion::speed(int step)
     covered_distances.resize(step);
     float covered_dist = sum(covered_distances);
     float ratio = covered_dist / dist_total;
-    float k = 3.0f; // Steepness of acceleration/deceleration (increase for sharper effect)
+    float k = 2.5f; // Steepness of acceleration/deceleration (increase for sharper effect)
 
     if(a != 0.0f){
         speed = v + a * exp(ratio);
     } else if(lines[0].type_motion != Line_type::CueT){
+        ratio = covered_dist / (dist_total*2.0f);
         // Define thresholds for acceleration, max speed, and deceleration
-        float accel_ratio = 0.1f;  // First 20% is acceleration
-        float decel_ratio = 0.9f;  // Last 20% is deceleration
+        float accel_ratio = 0.1f;  // First 10% is acceleration
+        float decel_ratio = 0.9f;  // Last 10% is deceleration
         float min_factor = 0.2f;
 
         float speed_factor;
@@ -283,25 +284,22 @@ void Motion::add_lines(numarray<line_structure> lines_to_add)
 }
 
 
-void Motion::find_positions(skeleton_structure skeleton, vec3 t_source, camera_projection_perspective const& P, mat4 const& camera_view_inverse)
+void Motion::find_positions(skeleton_structure skeleton, vec3 t_source)
 {
     line_structure dir_line = get_median_line(skeleton);
 
     calculate_speed();
     std::cout<<"v = "<<v<<std::endl;
 
-    N_pos_before = dir_line.samples.size();
+    std::cout<<"dir dir"<<std::endl;
+
+    N_pos_before = dir_line.samples.size()-1;
     
-    int N_pos_total = N_pos_before + 2; // N_pos_total > (N_pos_before + 1)
+    int N_pos_total = N_pos_before+1;
     positions_to_follow.resize(N_pos_total);
 
     // position of movement
     positions_to_follow[N_pos_before] = t_source;
-
-
-    float magnitude;
-    vec3 axis;
-    vec3 vel = dir_line.angular_velocity(axis, magnitude);
 
     vec3 correction = t_source - dir_line.samples[dir_line.samples.size()-1];
 
@@ -310,34 +308,8 @@ void Motion::find_positions(skeleton_structure skeleton, vec3 t_source, camera_p
         positions_to_follow[i] = dir_line.samples[i] + correction;
     }
 
-    // case of straight dir_line:
-    if(axis.x == 0.0f && axis.y == 0.0f && axis.z == 0.0f)
-    {
-        std::cout<<"ligne"<<std::endl;
-        vec3 dir = dir_line.samples[dir_line.samples.size()-1] - dir_line.samples[0];
-        vel = v * dir;
-
-        // after the movement
-        for(int i = N_pos_before+1 ; i < N_pos_total; i++){
-            positions_to_follow[i] = positions_to_follow[i-1] + 0.4f*dir;
-        }
-
-    // case of circular line
-    } else {
-
-        circle_2D c_2D = find_circle(dir_line.projected_samples);
-        vec3 center = unproject(P, camera_view_inverse, c_2D.center, dir_line.depth_2D);
-
-        std::cout<<"pas ligne"<<std::endl;
-        quaternion rotation_q = quaternion(axis * sin(magnitude/2.0f), cos(magnitude/2.0f));
-
-        // after the movement
-        for(int i = N_pos_before+1 ; i < N_pos_total; i++){
-            vec3 vect = positions_to_follow[i-1] - center;
-            quaternion q_res = rotation_q * quaternion(vect,0.0f) * conjugate(rotation_q);
-            positions_to_follow[i] = q_res.xyz() + center;
-        }
-    }
+    // find distances between the positions
+    find_distances();
 
 }
 
@@ -384,20 +356,6 @@ mat4 Motion::evaluate_end(int id_joint_in_chain, float t) const {
     if(idx0>=N_time-1) {
         M = all_local_joints_after[N_time-1 - N_pos_before][id_joint_in_chain];
     }
-
-
-    /*mat4 M;
-    if(t<t_end){
-        float t_before = times[N_pos_before];
-        float t_after = t_end;
-        float alpha = (t - t_before) / (t_after - t_before);
-
-        mat4 const& M0 = local_joints_now[id_joint];
-        mat4 const& M1 = local_joints_after[id_joint_in_chain];
-        M = (1.0f-alpha)*M0 + alpha*M1;
-    } else {
-        M = local_joints_after[id_joint_in_chain];
-    }*/
 
     return M;
 }
