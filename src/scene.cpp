@@ -12,19 +12,14 @@ float scene_structure::calculate_animation_duration()
 {
 	float max_duration = 3.0f; //seconds
 
-	for (Direction m: motion_dirs) {
-		float m_duration = m.times[m.times.size()-1];
-		if(m_duration > max_duration) {
-			max_duration = m_duration;
+	for (Motion m: motions) {
+		if(m.lines[0].type_motion == Line_type::DirT) {
+			float m_duration = m.times[m.times.size()-1];
+			if(m_duration > max_duration) {
+				max_duration = m_duration;
+			}
 		}
 	}
-
-	/*if(global_motion.lines.size()>0) {
-		float m_duration_global = global_motion.times[global_motion.times.size()-1];
-		if(m_duration_global > max_duration) {
-			max_duration = m_duration_global;
-		}
-	}*/
 
 	return max_duration + 0.5f;
 }
@@ -148,28 +143,26 @@ void scene_structure::update_character()
 	for(Cue& cue_m : motion_cues){
 		cue_m.find_positions(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[cue_m.joint_id].get_block_translation());
 		cue_m.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
+		cue_m.t_end = cue_m.times[cue_m.times.size()-1]; // to the end, by default
 	}
 	if(global_motion.lines.size()>0){
 		global_motion.find_positions_global(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[global_motion.joint_id].get_block_translation(), camera_projection, camera_control.camera_model.matrix_frame());
 		global_motion.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
+		global_motion.t_end = global_motion.times[global_motion.times.size()-1]; // to the end, by default
 	}
-
-	// order the motions to know which is calculated first
-	order_motions_by_joint_id(); // not HERE BEFORE
 
 	// End of direction motions
 	for(Direction& dir_m : motion_dirs){
-		dir_m.find_after_joints(dir_m.times[dir_m.N_pos_before] + 0.5f, characters["Lola"].animated_model); // t_end, dt_before
-		std::cout<<"size all after joints for motion id "<<dir_m.joint_id<<" : "<<dir_m.all_local_joints_after.size()<<" x "<<dir_m.all_local_joints_after[0].size()<<std::endl;
-
+		dir_m.find_after_joints(characters["Lola"].animated_model);
+		dir_m.t_end = dir_m.times[dir_m.times.size()-1]; // to the end, by default
 	}
 
 	// manage impacts
 	if (impact_lines.size()>0) {
-		Direction::update_dirs_with_impacts(characters["Lola"].timer.t_periodic, motion_dirs, impact_lines, characters["Lola"].animated_model, motions);
+		Direction::update_dirs_with_impacts(motion_dirs, impact_lines, characters["Lola"].animated_model);
 	}
 	if(global_motion.lines.size()>0) {
-		global_motion.check_impact_global(characters["Lola"].timer.t_periodic, impact_lines, motion_dirs, characters["Lola"].animated_model, motions);
+		global_motion.check_impact_global(impact_lines, motion_dirs, characters["Lola"].animated_model);
 	}
 
 	// order the motions to know which is calculated first
@@ -268,7 +261,7 @@ void scene_structure::display_frame()
 				Motion motion_used = motions[motions.size()-1-i];
 				if (motion_used.joint_id != 0) {
 					// we continue the line with the movement based on the angles of before, IF it's a direction with no impacts
-					if (motion_used.lines[0].type_motion == Line_type::DirT && character.timer.t_periodic > motion_used.times[motion_used.N_pos_before] && motion_used.impacts.size() == 0) {
+					if (motion_used.lines[0].type_motion == Line_type::DirT && character.timer.t_periodic > motion_used.times[motion_used.N_pos_before] && motion_used.impacts.size() == 0 && motion_used.t_end > motion_used.times[motion_used.N_pos_before]) {
 						character.animated_model.set_skeleton_from_ending_joints(motion_used, character.timer.t_periodic);
 					} else {
 						character.animated_model.set_skeleton_from_motion_joint_ik(motion_used, character.timer.t_periodic);
@@ -403,7 +396,7 @@ void scene_structure::switch_benchmark(bool to_global)
 }
 
 
-void scene_structure::push_motion_button(int i, Motion motion)
+void scene_structure::push_motion_button(int i, Motion& motion)
 {
 	std::string button_label = "Cluster " + std::to_string(i + 1);
 
@@ -447,11 +440,11 @@ void scene_structure::push_motion_button(int i, Motion motion)
 		} else {
 			deselect_clusters();
 		}
-
 	}
 
 	if (is_selected) ImGui::PopStyleColor();
 
+	
 	ImGui::SameLine();
 }
 
@@ -482,14 +475,13 @@ void scene_structure::display_gui()
 			push_motion_button(motions.size(), global_motion);
 		}
 
-
 		ImGui::Spacing();
 		// apparition of new parameters
 		if (gui.selected_motion != -1) {
 			bool is_dir_motion = false;
 
-			bool is_local;
-			bool is_global;
+			bool is_local = false;
+			bool is_global = false;
 			// case of global direction
 			if(gui.selected_motion == motions.size() && global_motion.lines.size()>0){
 				is_local = false;
@@ -502,15 +494,65 @@ void scene_structure::display_gui()
 				is_dir_motion = true;
 			}
 
+			ImGui::Spacing();
+			// Input Start Time
+			ImGui::Text("Start Time (s)"); ImGui::SameLine();
+			std::string input_label = "##start_time" + std::to_string(gui.selected_motion); // Unique label for each input
+			if(is_global){
+				ImGui::InputFloat(input_label.c_str(), &global_motion.t_start, 0.1f, 1.0f, "%.3f");
+				// Detect when the user has finished editing
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					global_motion.t_start = std::max(0.0f, global_motion.t_start);
+					if(global_motion.t_end <= global_motion.t_start) global_motion.t_end = global_motion.t_start + 0.1f;
+					global_motion.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
+					characters["Lola"].timer.event_period = calculate_animation_duration();
+				}
+			} else {
+				ImGui::InputFloat(input_label.c_str(), &motions[gui.selected_motion].t_start, 0.1f, 1.0f, "%.3f");
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					motions[gui.selected_motion].t_start = std::max(0.0f, motions[gui.selected_motion].t_start);
+					if(motions[gui.selected_motion].t_end <= motions[gui.selected_motion].t_start) motions[gui.selected_motion].t_end = motions[gui.selected_motion].t_start + 0.1f;
+					motions[gui.selected_motion].animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
+					characters["Lola"].timer.event_period = calculate_animation_duration();
+				}
+			}
+
+			ImGui::Spacing();
+
+			// Input End Time
+			ImGui::Text("End Time (s)"); ImGui::SameLine();
+			input_label = "##end_time" + std::to_string(gui.selected_motion); // Unique label for each input
+			if(is_global && global_motion.impacts.size()==0){
+				float tmp_end = global_motion.t_end;
+				ImGui::InputFloat(input_label.c_str(), &tmp_end, 0.1f, 1.0f, "%.3f");
+				// Detect when the user has finished editing
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					global_motion.t_end = cgp::clamp(tmp_end, global_motion.times[1], global_motion.times[global_motion.times.size()-1]);
+					characters["Lola"].timer.event_period = calculate_animation_duration();
+				}
+			} else if (motions[gui.selected_motion].impacts.size()==0) {
+				float tmp_end = motions[gui.selected_motion].t_end;
+				ImGui::InputFloat(input_label.c_str(), &tmp_end, 0.1f, 1.0f, "%.3f");
+				// Detect when the user has finished editing
+				if (ImGui::IsItemDeactivatedAfterEdit()) {
+					motions[gui.selected_motion].t_end = cgp::clamp(tmp_end, motions[gui.selected_motion].times[1], motions[gui.selected_motion].times[motions[gui.selected_motion].times.size()-1]);
+					characters["Lola"].timer.event_period = calculate_animation_duration();
+				}
+			}
+			
+
 			// for a Direction motion
 			if(is_dir_motion) {
+				ImGui::Spacing();
 				if (ImGui::RadioButton("Local", is_local)) {
 					if(!is_local) switch_benchmark(false);
 				}; ImGui::SameLine();
 				if (ImGui::RadioButton("Global", is_global)) {
 					if(!is_global) switch_benchmark(true);
 				};
+
 			}
+
 		}
 	}
 

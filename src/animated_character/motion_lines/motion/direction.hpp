@@ -18,15 +18,14 @@ class Direction : public Motion {
         void find_positions(skeleton_structure skeleton, cgp::vec3 t_source) override;
         void find_positions_global(skeleton_structure skeleton, cgp::vec3 t_source, cgp::camera_projection_perspective const& P, cgp::mat4 const& camera_view_inverse);
 
-        void find_after_joints(float t_stop, animated_model_structure& animated_model);
+        void find_after_joints(animated_model_structure& animated_model);
 
         cgp::numarray<line_structure> is_impacted(cgp::numarray<line_structure> impact_lines, skeleton_structure skeleton);
-        void update_impact(float t_drawn, cgp::numarray<line_structure> impacting_lines, animated_model_structure& animated_model, cgp::numarray<Motion> motions, bool is_global);
-        void check_impact(float t_drawn, cgp::numarray<line_structure> impact_lines, animated_model_structure& animated_model, cgp::numarray<Motion> motions);
-        void check_impact_global(float t_drawn, cgp::numarray<line_structure> impact_lines, cgp::numarray<Direction> dir_motions, animated_model_structure& animated_model, cgp::numarray<Motion> motions);
-        static void update_dirs_with_impacts(float t_drawn, cgp::numarray<Direction>& dir_motions, cgp::numarray<line_structure> impact_lines, animated_model_structure& animated_model, cgp::numarray<Motion> motions);
-        void precompute_positions_with_impacts_global(animated_model_structure& animated_model);
-        void precompute_positions_with_impacts_local(animated_model_structure& animated_model);
+        void update_impact(cgp::numarray<line_structure> impacting_lines, animated_model_structure& animated_model, bool is_global);
+        void check_impact(cgp::numarray<line_structure> impact_lines, animated_model_structure& animated_model);
+        void check_impact_global(cgp::numarray<line_structure> impact_lines, cgp::numarray<Direction> dir_motions, animated_model_structure& animated_model);
+        static void update_dirs_with_impacts(cgp::numarray<Direction>& dir_motions, cgp::numarray<line_structure> impact_lines, animated_model_structure& animated_model);
+        void precompute_positions_with_impacts(animated_model_structure& animated_model, bool is_global);
         cgp::numarray<cgp::mat4> get_joints_in_chain(cgp::numarray<cgp::mat4> skeleton_joints);
         cgp::numarray<cgp::numarray<cgp::vec3>> compute_angle_velocities(animated_model_structure& animated_model, cgp::numarray<cgp::mat4>& root_global_joints);
 

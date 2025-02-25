@@ -115,7 +115,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	void stop_delete_mode();
 	void deselect_clusters();
 	int find_line_from_cluster_line(line_structure m_line);
-	void push_motion_button(int i, Motion motion);
+	void push_motion_button(int i, Motion& motion);
 	void switch_benchmark(bool to_global);
 
 };

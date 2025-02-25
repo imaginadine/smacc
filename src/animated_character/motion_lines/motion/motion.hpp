@@ -27,7 +27,8 @@ class Motion {
 
 		cgp::numarray<cgp::mat4> joints;
 		cgp::numarray<float> times;
-		float t_end;
+		float t_start = 0.0f;
+		float t_end = 10000.0f;
 		cgp::numarray<float> distances;
 		float dist_total;
 		int joint_root_ik = 0;
@@ -66,8 +67,8 @@ class Motion {
 
 		void animate_motion_to_joint(skeleton_structure& skeleton);
 
-		cgp::mat4 evaluate(float t) const;
-		cgp::mat4 evaluate_end(int id_joint_in_chain, float t) const;
+		cgp::mat4 evaluate(float t);
+		cgp::mat4 evaluate_end(int id_joint_in_chain, float t);
 
 		void find_chain(skeleton_structure skeleton);
 		void update_skeleton(skeleton_structure& skeleton);

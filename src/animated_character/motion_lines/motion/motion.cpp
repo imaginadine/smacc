@@ -132,11 +132,14 @@ float Motion::speed(int step)
     covered_distances.resize(step);
     float covered_dist = sum(covered_distances);
     float ratio = covered_dist / dist_total;
-    float k = 2.5f; // Steepness of acceleration/deceleration (increase for sharper effect)
 
     if(a != 0.0f){
+
         speed = v + a * exp(ratio);
+
     } else if(lines[0].type_motion != Line_type::CueT){
+
+        float k = 2.5f; // Steepness of acceleration/deceleration (increase for sharper effect)
         ratio = covered_dist / (dist_total*2.0f);
         // Define thresholds for acceleration, max speed, and deceleration
         float accel_ratio = 0.1f;  // First 10% is acceleration
@@ -167,7 +170,6 @@ float Motion::speed(int step)
 // give a motion (defined by some positions and a velocity) to a joint
 void Motion::animate_motion_to_joint(skeleton_structure& skeleton)
 {
-
     bool global_spinning = (lines[0].type_motion == Line_type::GlobT && (norm(lines[0].samples[lines[0].samples.size()-1] - lines[0].samples[0]) < 0.1f && lines[0].get_length() > 0.3f));
 	// fetch the joint
     mat4 M_global = skeleton.joint_matrix_global[joint_id];
@@ -180,14 +182,14 @@ void Motion::animate_motion_to_joint(skeleton_structure& skeleton)
     times.clear();
 
     if(global_spinning) {
-        times.push_back(0.0f); //t0
+        times.push_back(t_start); //t0
         float delta = 0.06f/float(lines.size());
         for (int i = 1; i < N_positions; i++) {
             times.push_back(times[times.size()-1] + delta);
         }
 
     } else {
-        times.push_back(0.0f); //t0
+        times.push_back(t_start); //t0
         for (int i = 1; i < N_positions; i++) {
             // 1) calculate the distance between two positions
             float d = distances[i-1];
@@ -204,7 +206,7 @@ void Motion::animate_motion_to_joint(skeleton_structure& skeleton)
         }
 
     }
-
+    
 }
 
 
@@ -314,7 +316,7 @@ void Motion::find_positions(skeleton_structure skeleton, vec3 t_source)
 }
 
 
-mat4 Motion::evaluate(float t) const {
+mat4 Motion::evaluate(float t) {
 
     cgp::numarray<float> const& time_array = times;
     int N_time = time_array.size();
@@ -325,20 +327,26 @@ mat4 Motion::evaluate(float t) const {
 
 
     mat4 M;
-    if(idx0<N_time-1){
-        mat4 const& M0 = joints[idx0];
-        mat4 const& M1 = joints[idx0+1];
-        M = (1.0f-alpha)*M0 + alpha*M1;
+    if(t > t_end) {
+        int end_step = get_step_from_time(t_end);
+        M = joints[end_step];
+    } else {
+        if(idx0<N_time-1){
+            mat4 const& M0 = joints[idx0];
+            mat4 const& M1 = joints[idx0+1];
+            M = (1.0f-alpha)*M0 + alpha*M1;
+        }
+        if(idx0>=N_time-1) {
+            M = joints[N_time-1];
+        }
     }
-    if(idx0>=N_time-1) {
-        M = joints[N_time-1];
-    }
+    
 
     return M;
 }
 
 
-mat4 Motion::evaluate_end(int id_joint_in_chain, float t) const {
+mat4 Motion::evaluate_end(int id_joint_in_chain, float t) {
 
     cgp::numarray<float> time_array = times;
     int N_time = time_array.size();
@@ -348,13 +356,17 @@ mat4 Motion::evaluate_end(int id_joint_in_chain, float t) const {
     find_relative_placement_in_array(time_array, t, idx0, alpha);
 
     mat4 M;
-    if(idx0<N_time-1){
-        mat4 const& M0 = all_local_joints_after[idx0 - N_pos_before][id_joint_in_chain];
-        mat4 const& M1 = all_local_joints_after[idx0+1 - N_pos_before][id_joint_in_chain];
-        M = (1.0f-alpha)*M0 + alpha*M1;
-    }
-    if(idx0>=N_time-1) {
-        M = all_local_joints_after[N_time-1 - N_pos_before][id_joint_in_chain];
+    if(t > t_end) {
+        M = all_local_joints_after[get_step_from_time(t_end)- N_pos_before][id_joint_in_chain];
+    } else {
+        if(idx0<N_time-1){
+            mat4 const& M0 = all_local_joints_after[idx0 - N_pos_before][id_joint_in_chain];
+            mat4 const& M1 = all_local_joints_after[idx0+1 - N_pos_before][id_joint_in_chain];
+            M = (1.0f-alpha)*M0 + alpha*M1;
+        }
+        if(idx0>=N_time-1) {
+            M = all_local_joints_after[N_time-1 - N_pos_before][id_joint_in_chain];
+        }
     }
 
     return M;
