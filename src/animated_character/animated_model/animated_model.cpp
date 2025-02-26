@@ -131,7 +131,7 @@ void animated_model_structure::set_skeleton_from_motion_all(Motion& m, float t)
     skeleton.joint_matrix_local[0] = skeleton.joint_matrix_global[0];
     skeleton.update_joint_matrix_local_to_global();
 
-    if(m.impacts.size() > 0 && m.get_step_from_time(t) >= m.N_pos_before) { 
+    if(m.impacts.size() > 0 && t >= m.times[m.N_pos_before]) { 
         // manage impacts
         set_skeleton_from_motion_impacts(m);
     }
@@ -181,9 +181,7 @@ bool animated_model_structure::is_reachable_from_motion_impacts(Motion& m, int i
 
 }
 
-
-
-void animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
+vec3 animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
 {
     // for each impact
     for (const auto& impact_pair : m.impacts){
@@ -218,6 +216,9 @@ void animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
         // 4) compute ik and update skeleton
         ik_compute(effect_ik, skeleton, m.is_constrained);
         skeleton.update_joint_matrix_local_to_global();
+
+        // 5) return the position to follow
+        return current_pos_m;
 
     }
 
@@ -617,6 +618,7 @@ void ik_compute(ik_structure const& effect_ik, skeleton_structure& skeleton, boo
 
             skeleton.joint_matrix_global[chain_index[k]].apply_transform_to_block_linear(RT);
         }
+        // do it also for the 
     }
 	
 	// Set the position along the chain

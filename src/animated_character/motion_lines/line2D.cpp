@@ -63,10 +63,11 @@ int most_dependant_joint(int vertex_id, controller_skinning_structure controller
 }
 
 
-int find_joint_from_2D_line(numarray<vec2> projected_positions, animated_model_structure model, camera_projection_perspective const& P, mat4 const& camera_view, float& depth_to_find)
+int find_joint_from_2D_line(bool is_action, numarray<vec2> projected_positions, animated_model_structure model, camera_projection_perspective const& P, mat4 const& camera_view, float& depth_to_find)
 {
     int N_line_pos = projected_positions.size();
     vec2 last_pos = projected_positions[N_line_pos - 1];
+    if (!is_action) last_pos = projected_positions[N_line_pos/2];
 
     numarray<mat4> global_joints = model.skeleton.joint_matrix_global;
     int N_joints = global_joints.size();

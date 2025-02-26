@@ -10,8 +10,6 @@ void Cue::find_positions(skeleton_structure skeleton, vec3 t_source)
     calculate_speed();
     std::cout<<"v = "<<v<<std::endl;
 
-    std::cout<<"cue cue"<<std::endl;
-
     v = 2.f*v;
     
     int repetition = 50;

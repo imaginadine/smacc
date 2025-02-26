@@ -10,7 +10,7 @@
 float cross2D (cgp::vec2 v0, cgp::vec2 v1);
 bool in_list (int nb, cgp::numarray<int> list);
 int most_dependant_joint(int vertex_id, controller_skinning_structure controller_skinning);
-int find_joint_from_2D_line(cgp::numarray<cgp::vec2> projected_positions, animated_model_structure model, cgp::camera_projection_perspective const& P, cgp::mat4 const& camera_view, float& depth_to_find);
+int find_joint_from_2D_line(bool is_action, cgp::numarray<cgp::vec2> projected_positions, animated_model_structure model, cgp::camera_projection_perspective const& P, cgp::mat4 const& camera_view, float& depth_to_find);
 
 bool is_wrapping_object(cgp::numarray<cgp::vec2> projected_positions, animated_model_structure animated_model, cgp::camera_projection_perspective const& P, cgp::mat4 const& camera_view);
 

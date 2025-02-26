@@ -16,7 +16,7 @@ class Direction : public Motion {
 
         static void merge_dir_motions(cgp::numarray<Direction>& motions, skeleton_structure skeleton, cgp::numarray<int> cue_ids);
         void find_positions(skeleton_structure skeleton, cgp::vec3 t_source) override;
-        void find_positions_global(skeleton_structure skeleton, cgp::vec3 t_source, cgp::camera_projection_perspective const& P, cgp::mat4 const& camera_view_inverse);
+        void find_positions_global(skeleton_structure skeleton, cgp::vec3 t_source);
 
         void find_after_joints(animated_model_structure& animated_model);
 
@@ -30,5 +30,3 @@ class Direction : public Motion {
         cgp::numarray<cgp::numarray<cgp::vec3>> compute_angle_velocities(animated_model_structure& animated_model, cgp::numarray<cgp::mat4>& root_global_joints);
 
 };
-
-cgp::quaternion slerp(const cgp::quaternion& q1, const cgp::quaternion& q2, float t);

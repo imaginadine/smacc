@@ -146,7 +146,7 @@ void scene_structure::update_character()
 		cue_m.t_end = cue_m.times[cue_m.times.size()-1]; // to the end, by default
 	}
 	if(global_motion.lines.size()>0){
-		global_motion.find_positions_global(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[global_motion.joint_id].get_block_translation(), camera_projection, camera_control.camera_model.matrix_frame());
+		global_motion.find_positions_global(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[global_motion.joint_id].get_block_translation());
 		global_motion.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
 		global_motion.t_end = global_motion.times[global_motion.times.size()-1]; // to the end, by default
 	}
@@ -155,6 +155,7 @@ void scene_structure::update_character()
 	for(Direction& dir_m : motion_dirs){
 		dir_m.find_after_joints(characters["Lola"].animated_model);
 		dir_m.t_end = dir_m.times[dir_m.times.size()-1]; // to the end, by default
+		//std::cout<<"size of times : "<<dir_m.times.size()<<" size of N_pos_before + all_joints_after : "<<dir_m.N_pos_before<<" + "<<dir_m.all_local_joints_after.size()<<" = "<<dir_m.N_pos_before + dir_m.all_local_joints_after.size()<<std::endl;
 	}
 
 	// manage impacts
@@ -418,7 +419,6 @@ void scene_structure::push_motion_button(int i, Motion& motion)
 					old_motion = motions[old_selected_motion];
 				}
 			}
-			
 
 			// handle change of selected motion cluster
 			if(old_selected_motion != gui.selected_motion) {
@@ -518,11 +518,11 @@ void scene_structure::display_gui()
 			}
 
 			ImGui::Spacing();
-
 			// Input End Time
-			ImGui::Text("End Time (s)"); ImGui::SameLine();
-			input_label = "##end_time" + std::to_string(gui.selected_motion); // Unique label for each input
 			if(is_global && global_motion.impacts.size()==0){
+				
+				ImGui::Text("End Time (s)"); ImGui::SameLine();
+				input_label = "##end_time" + std::to_string(gui.selected_motion); // Unique label for each input
 				float tmp_end = global_motion.t_end;
 				ImGui::InputFloat(input_label.c_str(), &tmp_end, 0.1f, 1.0f, "%.3f");
 				// Detect when the user has finished editing
@@ -530,7 +530,10 @@ void scene_structure::display_gui()
 					global_motion.t_end = cgp::clamp(tmp_end, global_motion.times[1], global_motion.times[global_motion.times.size()-1]);
 					characters["Lola"].timer.event_period = calculate_animation_duration();
 				}
-			} else if (motions[gui.selected_motion].impacts.size()==0) {
+			}
+			if (!is_global && motions[gui.selected_motion].impacts.size()==0) {
+				ImGui::Text("End Time (s)"); ImGui::SameLine();
+				input_label = "##end_time" + std::to_string(gui.selected_motion); // Unique label for each input
 				float tmp_end = motions[gui.selected_motion].t_end;
 				ImGui::InputFloat(input_label.c_str(), &tmp_end, 0.1f, 1.0f, "%.3f");
 				// Detect when the user has finished editing
@@ -693,7 +696,7 @@ void scene_structure::mouse_move_event()
 					} else {
 
 						float depth;
-						int joint_id_found = find_joint_from_2D_line(current_line_projected_positions, characters["Lola"].animated_model, camera_projection, inverse(camera_control.camera_model.matrix_frame()), depth);
+						int joint_id_found = find_joint_from_2D_line(is_action, current_line_projected_positions, characters["Lola"].animated_model, camera_projection, inverse(camera_control.camera_model.matrix_frame()), depth);
 						printf("found joint = %d with depth = %f\n", joint_id_found, depth);
 
 						// if a joint was found

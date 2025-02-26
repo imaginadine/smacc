@@ -37,7 +37,6 @@ class Motion {
 		cgp::numarray<cgp::numarray<cgp::mat4>> all_local_joints_after;
 
 		std::map<int, cgp::vec3> impacts; // id joint impacted | pos the impact joint
-		float t_impact = -1.f;
 		bool is_constrained = false;
 
 		cgp::numarray<int> chain;

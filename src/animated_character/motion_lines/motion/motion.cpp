@@ -133,9 +133,10 @@ float Motion::speed(int step)
     float covered_dist = sum(covered_distances);
     float ratio = covered_dist / dist_total;
 
+    // case of acceleration with impacts
     if(a != 0.0f){
 
-        speed = v + a * exp(ratio);
+        if(ratio > 0.25f) speed = v + a * exp(ratio);
 
     } else if(lines[0].type_motion != Line_type::CueT){
 
