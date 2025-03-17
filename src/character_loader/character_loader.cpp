@@ -27,6 +27,8 @@ character_structure load_character_xbot() {
 	loader_param.add_rigged_mesh("body1", project::path+"assets/xbot/mesh-xbot/mesh-beta_surface/", project::path+"assets/xbot/mesh-xbot/RobotSkin.png");
 	loader_param.add_rigged_mesh("body2", project::path+"assets/xbot/mesh-xbot/mesh-beta_joints/", project::path+"assets/xbot/mesh-xbot/RobotSkin.png");
 	loader_param.add_animation("Idle", project::path+"assets/xbot/animation/idle/");
+	loader_param.add_animation("Jump", project::path+"assets/xbot/animation/jump/");
+	loader_param.add_animation("Punch", project::path+"assets/xbot/animation/punching/");
 
 	character_structure character;
 	character.load_and_initialize(loader_param, affine_rts().set_scaling(0.01f));

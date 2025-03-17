@@ -2,6 +2,21 @@
 
 using namespace cgp;
 
+
+
+
+void animated_model_structure::give_pose(std::string const& animation_name, float t)
+{
+    anim_name = animation_name;
+    anim_time = t;
+}
+
+void animated_model_structure::set_default_pose()
+{
+    set_skeleton_from_animation(anim_name, anim_time);
+}
+
+
 void animated_model_structure::skinning_lbs(std::string const& mesh_name)
 {
     cgp::mesh const& mesh_bind_pose = rigged_mesh[mesh_name].mesh_bind_pose;
@@ -183,6 +198,8 @@ bool animated_model_structure::is_reachable_from_motion_impacts(Motion& m, int i
 
 vec3 animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
 {
+    vec3 current_pos_m = skeleton.joint_matrix_global[m.joint_id].get_block_translation();
+    
     // for each impact
     for (const auto& impact_pair : m.impacts){
 
@@ -194,8 +211,6 @@ vec3 animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
         while(m_joint_id == 0 || ! is_joint_parent(impact_joint_id, m_joint_id, skeleton) ) { // add the condition to do with multiple impacts
             m_joint_id++;
         }
-
-        vec3 current_pos_m = skeleton.joint_matrix_global[m_joint_id].get_block_translation();
 
         // 1) move impact_joint to the position of the impact
         vec3 impact_joint_pos = skeleton.joint_matrix_global[impact_joint_id].get_block_translation();
@@ -217,10 +232,10 @@ vec3 animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
         ik_compute(effect_ik, skeleton, m.is_constrained);
         skeleton.update_joint_matrix_local_to_global();
 
-        // 5) return the position to follow
-        return current_pos_m;
-
     }
+
+    // 5) return the position to follow
+    return current_pos_m;
 
 }
 
@@ -618,7 +633,7 @@ void ik_compute(ik_structure const& effect_ik, skeleton_structure& skeleton, boo
 
             skeleton.joint_matrix_global[chain_index[k]].apply_transform_to_block_linear(RT);
         }
-        // do it also for the 
+       
     }
 	
 	// Set the position along the chain

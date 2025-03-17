@@ -44,27 +44,6 @@ void Motion::clear()
 
 
 /**
-    Find the type of a line : direction or cue
-    Return a new motion class
- */
-/*std::unique_ptr<Motion> Motion::find_type_line(line_structure line, skeleton_structure& skeleton, int id, camera_projection_perspective const& P, mat4 const& camera_view_inverse, int method_to_give) 
-{
-    std::unique_ptr<Motion> motion;
-
-    if (true is_cue condition ) {
-        motion = std::make_unique<Cue>(line, id, method_to_give);
-    } else {
-        motion = std::make_unique<Direction>(line, id, method_to_give);
-    }
-
-    motion->initialize(line, skeleton, P, camera_view_inverse);
-    motion->animate_motion_to_joint(skeleton);
-
-    return motion;
-}*/
-
-
-/**
     Find the closest joint id
 */
 int find_motion_id(line_structure line, skeleton_structure& skeleton)
@@ -124,7 +103,7 @@ void Motion::find_distances()
     dist_total = sum(distances);
 }
 
-float Motion::speed(int step)
+float Motion::speed(int step, numarray<float> old_times)
 {
     float speed = v;
 
@@ -141,7 +120,14 @@ float Motion::speed(int step)
     } else if(lines[0].type_motion != Line_type::CueT){
 
         float k = 2.5f; // Steepness of acceleration/deceleration (increase for sharper effect)
-        ratio = covered_dist / (dist_total*2.0f);
+
+        // if an end or start time have been defined
+        if(old_times.size() > 0 && (t_end - t_start != 0.0f) && (t_end - t_start != 1000.0f) && (t_end - t_start != old_times[old_times.size()-1])){
+            ratio = (old_times[step] -  old_times[0])/ (t_end - t_start);
+        } else {
+            ratio = covered_dist / (dist_total*2.0f);
+        }
+
         // Define thresholds for acceleration, max speed, and deceleration
         float accel_ratio = 0.1f;  // First 10% is acceleration
         float decel_ratio = 0.9f;  // Last 10% is deceleration
@@ -179,6 +165,7 @@ void Motion::animate_motion_to_joint(skeleton_structure& skeleton)
 	// verify that motion_positions > 1
     assert_cgp_no_msg(positions_to_follow.size() > 1);
 
+    numarray<float> old_times = times;
     // interpolation between the positions with time given by velocity
     times.clear();
 
@@ -195,7 +182,7 @@ void Motion::animate_motion_to_joint(skeleton_structure& skeleton)
             // 1) calculate the distance between two positions
             float d = distances[i-1];
             // 2) calculate the time of the position
-            float t = d/speed(i);
+            float t = d/speed(i, old_times);
             times.push_back(times[times.size()-1] + t);
         }
         
@@ -289,12 +276,10 @@ void Motion::add_lines(numarray<line_structure> lines_to_add)
 
 void Motion::find_positions(skeleton_structure skeleton, vec3 t_source)
 {
-    line_structure dir_line = get_median_line(skeleton);
+    line_structure dir_line = get_closest_line(skeleton);
 
     calculate_speed();
     std::cout<<"v = "<<v<<std::endl;
-
-    std::cout<<"dir dir"<<std::endl;
 
     N_pos_before = dir_line.samples.size()-1;
     
@@ -439,7 +424,7 @@ void Motion::find_roots_ik(numarray<std::shared_ptr<Motion>>& motions, skeleton_
     // for each motion, relative to another
     for (int i = 0; i < N_motions ; i++) {
         for (int j = 0; j < N_motions ; j++) { 
-            if (i != j) { //&& ( motions[i]->joint_id < motions[j]->joint_id )
+            if (i != j) { 
                 std::shared_ptr<Motion>& m1 = motions[i];
                 std::shared_ptr<Motion>& m2 = motions[j];
                 

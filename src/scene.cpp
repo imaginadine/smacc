@@ -15,6 +15,7 @@ float scene_structure::calculate_animation_duration()
 	for (Motion m: motions) {
 		if(m.lines[0].type_motion == Line_type::DirT) {
 			float m_duration = m.times[m.times.size()-1];
+			if(m.t_end - m.t_start != 1000.f) m_duration = m.t_end - m.t_start;
 			if(m_duration > max_duration) {
 				max_duration = m_duration;
 			}
@@ -121,8 +122,9 @@ void scene_structure::build_empty_motions()
 		if(new_line.type_motion == Line_type::ImpT) {
 			impact_lines.push_back(new_line);
 		}
-
 	}
+	std::cout<<"nb impact lines : "<<impact_lines.size()<<std::endl;
+
 }
 
 
@@ -164,6 +166,7 @@ void scene_structure::update_character()
 	}
 	if(global_motion.lines.size()>0) {
 		global_motion.check_impact_global(impact_lines, motion_dirs, characters["Lola"].animated_model);
+		std::cout<<"nb d'impacts : "<<global_motion.impacts.size()<<std::endl;
 	}
 
 	// order the motions to know which is calculated first
@@ -192,9 +195,11 @@ void scene_structure::initialize()
 	initialize_ground(ground);
 
 	
-	std::cout<<"- Load Lola character"<<std::endl;
+	std::cout<<"- Load XBot character"<<std::endl;
 	characters["Lola"] = load_character_xbot();
-	characters["Lola"].animated_model.skeleton.init_constraints();
+	characters["Lola"].animated_model.give_pose("Punch", 0.58f);
+	//characters["Lola"].animated_model.give_pose("Jump", 1.2f);
+	characters["Lola"].animated_model.skeleton.init_constraints(); // to delete
 	if(characters["Lola"].timer.event_period < 3.f) characters["Lola"].timer.event_period = 3.f;
 
 	current_active_character = "Lola";
@@ -255,7 +260,7 @@ void scene_structure::display_frame()
 		std::string character_name = entry.first;
 		character_structure& character = entry.second;
 
-		character.animated_model.set_skeleton_from_animation("Idle", 0.0f);
+		character.animated_model.set_default_pose();
 
 		if(!gui.sketch_mode) {
 			for(int i=0; i<motions.size();i++){
@@ -391,7 +396,7 @@ void scene_structure::switch_benchmark(bool to_global)
 
 	// start again: like the sketch mode was ended
 	deselect_clusters();
-	characters["Lola"].animated_model.set_skeleton_from_animation("Idle", 0.0f);
+	characters["Lola"].animated_model.set_default_pose();
 	old_sketch_mode = true;
 	gui.sketch_mode = false;
 }
@@ -528,6 +533,7 @@ void scene_structure::display_gui()
 				// Detect when the user has finished editing
 				if (ImGui::IsItemDeactivatedAfterEdit()) {
 					global_motion.t_end = cgp::clamp(tmp_end, global_motion.times[1], global_motion.times[global_motion.times.size()-1]);
+					global_motion.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
 					characters["Lola"].timer.event_period = calculate_animation_duration();
 				}
 			}
@@ -539,6 +545,7 @@ void scene_structure::display_gui()
 				// Detect when the user has finished editing
 				if (ImGui::IsItemDeactivatedAfterEdit()) {
 					motions[gui.selected_motion].t_end = cgp::clamp(tmp_end, motions[gui.selected_motion].times[1], motions[gui.selected_motion].times[motions[gui.selected_motion].times.size()-1]);
+					motions[gui.selected_motion].animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
 					characters["Lola"].timer.event_period = calculate_animation_duration();
 				}
 			}

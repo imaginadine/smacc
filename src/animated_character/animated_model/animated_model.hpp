@@ -23,6 +23,12 @@ struct animated_model_structure {
 
     skeleton_structure skeleton_t0;
 
+    std::string anim_name = "Idle";
+    float anim_time = 0.0f;
+
+    void give_pose(std::string const& animation_name, float t);
+    void set_default_pose();
+
     // Compute the joint position corresponding to the given animation_name at time t from the animation structure. Then update the skeleton structure in filling the local joint matrix. Finally update the global matrices of the skeleton.
     //  - t can be an arbitrary float values, the animation matrix are interpolated between the frames
     //  - This function doesn't call the Skinning deformation on the rigged_mesh

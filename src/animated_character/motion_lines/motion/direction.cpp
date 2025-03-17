@@ -5,7 +5,8 @@ using namespace cgp;
 
 void Direction::find_positions(skeleton_structure skeleton, vec3 t_source)
 {
-    line_structure dir_line = get_median_line(skeleton);
+    positions_to_follow.resize_clear(0);
+    line_structure dir_line = get_closest_line(skeleton);
 
     calculate_speed();
     std::cout<<"v = "<<v<<std::endl;
@@ -32,7 +33,7 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source)
 
 void Direction::find_positions_global(skeleton_structure skeleton, vec3 t_source)
 {
-    line_structure dir_line = get_median_line(skeleton);
+    line_structure dir_line = get_closest_line(skeleton);
 
     calculate_speed();
 
@@ -76,14 +77,14 @@ void Direction::find_positions_global(skeleton_structure skeleton, vec3 t_source
         // before
         for(int i=N_pos_before-1; i >= 0; i--) {
             mat4 centered_joint = joints[i+1];
-            centered_joint.apply_translation(-t_source); // /!\ need to turn around the root joint
+            centered_joint.apply_translation(-t_source); // need to turn around the root joint
             joints[i] = inverse(rt_spinning) * centered_joint;
             joints[i].apply_translation(t_source);
         }
         // after
         for(int i=N_pos_before+1; i < N_pos_total; i++) {
             mat4 centered_joint = joints[i-1];
-            centered_joint.apply_translation(-t_source); // /!\ need to turn around the root joint
+            centered_joint.apply_translation(-t_source); // need to turn around the root joint
             joints[i] = rt_spinning * centered_joint;
             joints[i].apply_translation(t_source);
         }
@@ -124,7 +125,7 @@ numarray<numarray<vec3>> Direction::compute_angle_velocities(animated_model_stru
     all_angle_vel.resize(times.size()-1);
 
     // initialize local_joints_before at t=0
-    animated_model.set_skeleton_from_animation("Idle", 0.0f);
+    animated_model.set_default_pose();
     animated_model.set_skeleton_from_motion_joint_ik(*this, 0.0f);
     numarray<mat4> local_joints_before = get_joints_in_chain(animated_model.skeleton.joint_matrix_local);
 
@@ -135,7 +136,7 @@ numarray<numarray<vec3>> Direction::compute_angle_velocities(animated_model_stru
         float dt = times[N_time - k_time] - times[N_time - k_time - 1];
 
         // put the skeleton in its current pose
-        animated_model.set_skeleton_from_animation("Idle", 0.0f);
+        animated_model.set_default_pose();
         animated_model.set_skeleton_from_motion_joint_ik(*this, times[k_time]);
 
         root_global_joints.push_back(animated_model.skeleton.joint_matrix_global[animated_model.skeleton.parent_index[joint_root_ik]]);
@@ -160,8 +161,14 @@ numarray<numarray<vec3>> Direction::compute_angle_velocities(animated_model_stru
             vec3 axis;
             float angle;
             relative_rt.to_axis_angle(axis, angle);
-            
+
+            // put the angle between -Pi and Pi
+            if(angle>Pi){
+                angle -= 2.f*Pi;
+            }
+
             vec3 ang_vel = (2.f*axis*angle/dt) * 0.3f;
+            
             if (std::abs(angle) < 1e-6f) {
                 ang_vel = vec3(0.0f, 0.0f, 0.0f);
             }
@@ -187,7 +194,7 @@ void Direction::find_after_joints(animated_model_structure& animated_model)
     numarray<numarray<vec3>> all_angle_vel = compute_angle_velocities(animated_model, root_global_joints);
 
     // Put the skeleton at the end of the motion line
-    animated_model.set_skeleton_from_animation("Idle", 0.0f);
+    animated_model.set_default_pose();
 	animated_model.set_skeleton_from_motion_joint_ik(*this, t);
 
     // Save the joints at this current position
@@ -218,7 +225,8 @@ void Direction::find_after_joints(animated_model_structure& animated_model)
             vec3 ang_vel = all_angle_vel[k_time-1][i];
             quaternion pure_ang_vel = quaternion(ang_vel, 0.f);
             quaternion deriv_q = 0.5f * q_now * pure_ang_vel;
-            quaternion q_after = slerp(q_now, normalize(q_now + deriv_q * dt), 1.0f);
+            quaternion q_after = q_now + deriv_q * dt;
+            q_after = normalize(q_after);
 
             // put the new orientation to the joint after!
             mat4 joint_after = local_joints_now[i];
@@ -344,7 +352,7 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
 {
 
     // 1) Put the character in its current pose
-    animated_model.set_skeleton_from_animation("Idle", 0.0f);
+    animated_model.set_default_pose();
     if(is_global) {
         animated_model.set_skeleton_from_motion_all(*this, times[0]);
     } else {
@@ -375,14 +383,14 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
 
     } else {
 
-        int nb_steps_front = positions_to_follow.size(); if(is_global) nb_steps_front = 10;
+        int nb_steps_front = positions_to_follow.size(); if(is_global) nb_steps_front = 11;
         int max_front_step = N_pos_before - 1 + nb_steps_front;
         
         numarray<vec3> new_positions = positions_to_follow;
         new_positions.resize(N_pos_before+1);
 
         // Put the character in its current pose
-        animated_model.set_skeleton_from_animation("Idle", 0.0f);
+        animated_model.set_default_pose();
         if(is_global) {
             animated_model.set_skeleton_from_motion_all(*this, times[0]);
         } else {
@@ -391,19 +399,20 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
         
         vec3 position_to_follow;
         int step=N_pos_before+1;
-        while (step < positions_to_follow.size() && step <= max_front_step)
+        std::cout<<"size pos to follow = "<<positions_to_follow.size()<<std::endl;
+        while (step < positions_to_follow.size() && step < max_front_step)
         {
+            std::cout<<"step = "<<step<<" max front step = "<<max_front_step<<std::endl;
+
             // Put the character in its pose
-            animated_model.set_skeleton_from_animation("Idle", 0.0f);
+            animated_model.set_default_pose();
             if(is_global) {
                 animated_model.set_skeleton_from_motion_all(*this, times[0]);
             } else {
                 animated_model.set_skeleton_from_motion_joint_ik(*this, times[step]);
             }
-            
             if(is_global) {
-               new_positions.push_back(positions_to_follow[step]);
-
+                new_positions.push_back(positions_to_follow[step]);
             } else if(animated_model.is_reachable_from_motion_impacts(*this, impact_joint_id, pos_impact_drawn)){ // If reachable
                 // Compute the skeleton with the impact, with the Inverse of IK
                 position_to_follow = animated_model.set_skeleton_from_motion_impacts(*this);
@@ -411,19 +420,16 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
             } else {
                 // stop here
                 max_front_step = step;
+                std::cout<<"stop!"<<std::endl;
             }
 
             step++;
         }
-        
+
+        step = step-1;
         max_front_step = step; // in case of step == positions_to_follow
 
-        // Add positions
-        if(is_global){
-            new_positions.push_back(positions_to_follow[step]);
-        } else {
-            new_positions.push_back(position_to_follow);
-        }
+        std::cout<<"new max front step :"<<max_front_step<<std::endl;
         
         // go back
         numarray<vec3> positions_back;
@@ -433,13 +439,17 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
                 positions_back.push_back(new_positions[step-i]);
             }
         }
+        std::cout<<"positions back :"<<positions_back<<std::endl;
         new_positions.push_back(positions_back);
 
+        std::cout<<"size positions "<<positions_to_follow.size()<<" > "<<new_positions.size()<<std::endl;
+
         // Update new positions_to_follow
-        positions_to_follow.clear();
+        positions_to_follow.resize_clear(0);
         positions_to_follow = new_positions;
         
     }
+    std::cout<<"positions to follow : "<<positions_to_follow<<std::endl;
     // find distances between the positions
     find_distances();
     
