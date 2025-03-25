@@ -7,21 +7,17 @@
 using namespace cgp;
 
 
-Motion::Motion(line_structure line, int id, int method_to_give)
-    : joint_id(id), method(method_to_give) {
+Motion::Motion(line_structure line, int id) : joint_id(id) {
     lines.push_back(line);
 }
 
-Motion::Motion(line_structure line, skeleton_structure skeleton, int method_to_give)
-    : method(method_to_give)
+Motion::Motion(line_structure line, skeleton_structure skeleton)
 {
     
     joint_id = find_motion_id(line, skeleton);
 
     if (joint_id == 0) {
         std::cout << "No joint found, global movement" << std::endl;
-        method = 0;
-        old_method = 0;
     }
     lines.push_back(line);
 
@@ -316,6 +312,7 @@ mat4 Motion::evaluate(float t) {
     if(t > t_end) {
         int end_step = get_step_from_time(t_end);
         M = joints[end_step];
+        //M = joints[joints.size()-1];
     } else {
         if(idx0<N_time-1){
             mat4 const& M0 = joints[idx0];
@@ -445,6 +442,7 @@ int Motion::get_step_from_time(float t)
     while(i <= times.size()-1 && times[i] < t){
         i++;
     }
+
     return i-1;
 }
 

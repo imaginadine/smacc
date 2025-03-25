@@ -29,6 +29,16 @@ character_structure load_character_xbot() {
 	loader_param.add_animation("Idle", project::path+"assets/xbot/animation/idle/");
 	loader_param.add_animation("Jump", project::path+"assets/xbot/animation/jump/");
 	loader_param.add_animation("Punch", project::path+"assets/xbot/animation/punching/");
+	loader_param.add_animation("Jazz", project::path+"assets/xbot/animation/jazz/");
+	loader_param.add_animation("Wtf", project::path+"assets/xbot/animation/wtfdance/");
+	loader_param.add_animation("Throw", project::path+"assets/xbot/animation/throw/");
+	loader_param.add_animation("Swim", project::path+"assets/xbot/animation/swimming/");
+	loader_param.add_animation("Climb", project::path+"assets/xbot/animation/climbing/");
+	loader_param.add_animation("Knee", project::path+"assets/xbot/animation/knee/");
+	loader_param.add_animation("Custom", project::path+"assets/xbot/animation/custom-dance/");
+	loader_param.add_animation("Action", project::path+"assets/xbot/animation/action/");
+	loader_param.add_animation("Crouch", project::path+"assets/xbot/animation/crouch/");
+	loader_param.add_animation("Custom-Simple", project::path+"assets/xbot/animation/custom-simple/");
 
 	character_structure character;
 	character.load_and_initialize(loader_param, affine_rts().set_scaling(0.01f));

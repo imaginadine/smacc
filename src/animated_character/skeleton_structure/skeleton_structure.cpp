@@ -133,6 +133,36 @@ void skeleton_structure::apply_translation_recursive(int joint_index, vec3 trans
     }
 }
 
+
+cgp::numarray<float> skeleton_structure::get_joint_angles() {
+    numarray<float> angles;
+
+    int N = joint_matrix_global.size();
+    for (int i = 1 ; i < N; i++) {
+        if(child(i).size() > 0) {
+            vec3 p1 = joint_matrix_global[parent_index[i]].get_block_translation();
+            vec3 p2 = joint_matrix_global[i].get_block_translation();
+            vec3 p3 = joint_matrix_global[child(i)[0]].get_block_translation();
+
+            vec3 v1 = p2 - p1;
+            vec3 v2 = p3 - p2;
+            float theta = 0.0f;
+            if (norm(v1) > 1e-6f && norm(v2) > 1e-6f) {
+                float cosTheta = dot(normalize(v1), normalize(v2));
+                cosTheta = std::max(-1.0f, std::min(1.0f, cosTheta));
+                theta = acos(cosTheta);
+            } 
+
+            angles.push_back(theta);
+        }
+    }
+
+    return angles;
+}
+
+
+
+
 void skeleton_structure::init_constraints()
 {
     int N_joints = joint_matrix_global.size();

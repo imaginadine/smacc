@@ -48,6 +48,8 @@ struct skeleton_structure {
     // Apply a translation to the child of joint_id
     void apply_translation_recursive(int joint_index, cgp::vec3 translation);
 
+    cgp::numarray<float> get_joint_angles();
+
     // Initialize the constraints of each joint
     void init_constraints();
 };

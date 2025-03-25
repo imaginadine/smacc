@@ -143,7 +143,12 @@ void main()
 	vec3 color_shading = (Ka + Kd * diffuse_component) * color_object + Ks * specular_component * vec3(1.0, 1.0, 1.0);
 	
 	// Step the color to apply a cel shader (like a cartoon)
-	vec3 cel_color = vec3(getColorStepped(color_shading.x), getColorStepped(color_shading.y), getColorStepped(color_shading.z));
+	vec3 cel_color;
+	if(fragment.color == vec3(1.f,0.f,0.f) || fragment.color == vec3(1.f,1.f,0.f)) {
+		cel_color = vec3(getColorStepped(fragment.color.x), getColorStepped(fragment.color.y), getColorStepped(fragment.color.z));
+	} else {
+		cel_color = vec3(getColorStepped(color_shading.x), getColorStepped(color_shading.y), getColorStepped(color_shading.z));
+	}
 	
 	// Output color, with the alpha component
 	FragColor = vec4(cel_color, material.alpha * color_image_texture.a);

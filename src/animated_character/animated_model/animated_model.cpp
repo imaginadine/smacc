@@ -230,10 +230,10 @@ vec3 animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
 
         // 4) compute ik and update skeleton
         ik_compute(effect_ik, skeleton, m.is_constrained);
-        skeleton.update_joint_matrix_local_to_global();
+        
 
     }
-
+    skeleton.update_joint_matrix_local_to_global();
     // 5) return the position to follow
     return current_pos_m;
 
@@ -255,7 +255,6 @@ void animated_model_structure::set_skeleton_from_motion_joint_ik(Motion& m, floa
     // compute the inverse kinematics
     ik_compute(effect_ik, skeleton, m.is_constrained);
 
-
     // do not add "bouncing" on the same joint
     bool same_id = false;
     for (const auto& impact_pair : m.impacts){        
@@ -268,14 +267,12 @@ void animated_model_structure::set_skeleton_from_motion_joint_ik(Motion& m, floa
     }
 
     if(m.impacts.size() > 0 && !same_id && t >= m.times[m.N_pos_before]) { 
-
         // manage impacts
         skeleton.update_joint_matrix_local_to_global();
         set_skeleton_from_motion_impacts(m);
     }
-
     skeleton.update_joint_matrix_local_to_global();
-   
+
 }
 
 

@@ -12,7 +12,7 @@ class Direction : public Motion {
     public:
     
         Direction() = default;
-        Direction(line_structure line, int id, int method_to_give) : Motion(line, id, method_to_give) {};
+        Direction(line_structure line, int id) : Motion(line, id) {};
 
         static void merge_dir_motions(cgp::numarray<Direction>& motions, skeleton_structure skeleton, cgp::numarray<int> cue_ids);
         void find_positions(skeleton_structure skeleton, cgp::vec3 t_source) override;

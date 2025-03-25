@@ -97,7 +97,7 @@ void scene_structure::build_empty_motions()
 		if(new_line.type_motion == Line_type::GlobT) {
 			// new global motion
 			if (global_motion.lines.size()==0) {
-				Direction dir = Direction(new_line, 0, gui.method);
+				Direction dir = Direction(new_line, 0);
 				global_motion = dir;
 			
 			} else { // add lines to the existing global motion
@@ -109,13 +109,13 @@ void scene_structure::build_empty_motions()
 
 		// Direction
 		if(new_line.type_motion == Line_type::DirT) {
-			Direction dir = Direction(new_line, new_line.joint_id, gui.method);
+			Direction dir = Direction(new_line, new_line.joint_id);
 			motion_dirs.push_back(dir);
 		}
 				
 		// Circumfixing lines
 		if(new_line.type_motion == Line_type::CueT) {
-			Cue cue = Cue(new_line, new_line.joint_id, gui.method);
+			Cue cue = Cue(new_line, new_line.joint_id);
 			motion_cues.push_back(cue);
 		}
 
@@ -157,6 +157,7 @@ void scene_structure::update_character()
 	for(Direction& dir_m : motion_dirs){
 		dir_m.find_after_joints(characters["Lola"].animated_model);
 		dir_m.t_end = dir_m.times[dir_m.times.size()-1]; // to the end, by default
+		dir_m.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
 		//std::cout<<"size of times : "<<dir_m.times.size()<<" size of N_pos_before + all_joints_after : "<<dir_m.N_pos_before<<" + "<<dir_m.all_local_joints_after.size()<<" = "<<dir_m.N_pos_before + dir_m.all_local_joints_after.size()<<std::endl;
 	}
 
@@ -197,9 +198,23 @@ void scene_structure::initialize()
 	
 	std::cout<<"- Load XBot character"<<std::endl;
 	characters["Lola"] = load_character_xbot();
-	characters["Lola"].animated_model.give_pose("Punch", 0.58f);
-	//characters["Lola"].animated_model.give_pose("Jump", 1.2f);
-	characters["Lola"].animated_model.skeleton.init_constraints(); // to delete
+	//characters["Lola"].animated_model.give_pose("Punch", 0.58f);
+	//characters["Lola"].animated_model.give_pose("Jump", 1.28f);
+	//characters["Lola"].animated_model.give_pose("Jazz", 0.267f);
+	//characters["Lola"].animated_model.give_pose("Wtf", 0.0f);
+	//characters["Lola"].animated_model.give_pose("Throw", 0.88f);
+	//characters["Lola"].animated_model.give_pose("Action", 0.0f);
+	//characters["Lola"].animated_model.give_pose("Climb", 0.0f);
+	//characters["Lola"].animated_model.give_pose("Crouch", 0.0f);
+	
+	// USER STUDY
+
+	//characters["Lola"].animated_model.give_pose("Custom-Simple", 1.3f);
+	//characters["Lola"].animated_model.give_pose("Custom", 1.309f);
+	//characters["Lola"].animated_model.give_pose("Knee", 0.733f);
+	//characters["Lola"].animated_model.give_pose("Swim", 1.066f);
+	
+
 	if(characters["Lola"].timer.event_period < 3.f) characters["Lola"].timer.event_period = 3.f;
 
 	current_active_character = "Lola";
@@ -262,21 +277,28 @@ void scene_structure::display_frame()
 
 		character.animated_model.set_default_pose();
 
-		if(!gui.sketch_mode) {
-			for(int i=0; i<motions.size();i++){
-				Motion motion_used = motions[motions.size()-1-i];
-				if (motion_used.joint_id != 0) {
-					// we continue the line with the movement based on the angles of before, IF it's a direction with no impacts
-					if (motion_used.lines[0].type_motion == Line_type::DirT && character.timer.t_periodic > motion_used.times[motion_used.N_pos_before] && motion_used.impacts.size() == 0 && motion_used.t_end > motion_used.times[motion_used.N_pos_before]) {
-						character.animated_model.set_skeleton_from_ending_joints(motion_used, character.timer.t_periodic);
-					} else {
-						character.animated_model.set_skeleton_from_motion_joint_ik(motion_used, character.timer.t_periodic);
+		if(gui.play_anim) {
+			character.animated_model.set_skeleton_from_animation(character.animated_model.anim_name, character.timer.t_periodic);
+		} else {
+
+			if(!gui.sketch_mode) {
+				for(int i=0; i<motions.size();i++){
+					Motion motion_used = motions[motions.size()-1-i];
+					if (motion_used.joint_id != 0) {
+						// we continue the line with the movement based on the angles of before, IF it's a direction with no impacts
+						if (motion_used.lines[0].type_motion == Line_type::DirT && character.timer.t_periodic > motion_used.times[motion_used.N_pos_before] && motion_used.impacts.size() == 0 && motion_used.t_end > motion_used.times[motion_used.N_pos_before]) {
+							character.animated_model.set_skeleton_from_ending_joints(motion_used, character.timer.t_periodic);
+						} else {
+							character.animated_model.set_skeleton_from_motion_joint_ik(motion_used, character.timer.t_periodic);
+						}
 					}
 				}
-			}
 
-			if(global_motion.lines.size()>0) character.animated_model.set_skeleton_from_motion_all(global_motion, character.timer.t_periodic);
+				if(global_motion.lines.size()>0) character.animated_model.set_skeleton_from_motion_all(global_motion, character.timer.t_periodic);
+			}
 		}
+
+		
 
 		
 	}
@@ -457,7 +479,7 @@ void scene_structure::push_motion_button(int i, Motion& motion)
 void scene_structure::display_gui()
 {
 
-	ImGui::Checkbox("Sketch Mode", &gui.sketch_mode);
+	if(!gui.play_anim) ImGui::Checkbox("Sketch Mode", &gui.sketch_mode);
 
 	if (gui.sketch_mode) {
 		deselect_clusters();
@@ -586,11 +608,17 @@ void scene_structure::display_gui()
 
 	ImGui::Spacing(); ImGui::Spacing();
 
-	ImGui::Spacing(); ImGui::Separator(); 
-	bool is_method1_clicked = ImGui::RadioButton("Rigidity", gui.method == 1); ImGui::SameLine();
-	bool is_method2_clicked = ImGui::RadioButton("Expressivity", gui.method == 2); // method = 2
 
-	bool is_constraint_clicked = ImGui::Checkbox("Constraints", &gui.constraint); ImGui::SameLine();
+	if (ImGui::Button("Play/Stop Ref Anim")){
+		gui.play_anim = !gui.play_anim;
+	}
+	if (ImGui::Button("Save Anim")){
+		save_anim(project::path+"assets/xbot/animation/custom-simple", motions, global_motion, characters["Lola"]);
+	}
+	if (ImGui::Button("Calculate error")){
+		compare_for_all_anim(characters["Lola"].animated_model.anim_name, motions, global_motion, characters["Lola"]);
+	}
+
 	ImGui::Unindent();
 
 	ImGui::Spacing(); ImGui::Spacing();
@@ -614,20 +642,6 @@ void scene_structure::display_gui()
 		ImGui::Unindent();
 	}
 
-	// Handle change of gui constraint
-	if(is_constraint_clicked)
-	{
-		for (Motion& m : motion_dirs)
-		{
-			m.is_constrained = gui.constraint;
-		}
-	}
-
-	// Handle change of method
-	if (is_method1_clicked || is_method2_clicked) {
-		if(is_method1_clicked) gui.method = 1;
-		if(is_method2_clicked) gui.method = 2;
-	}
 
 	// Hangle end of gui mode
 	if(old_sketch_mode != gui.sketch_mode){

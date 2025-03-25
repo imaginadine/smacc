@@ -437,7 +437,8 @@ src/main.o: src/main.cpp ../cgp/library/cgp/cgp.hpp \
  src/animated_character/motion_lines/motion/direction.hpp \
  src/animated_character/motion_lines/motion/cue.hpp \
  src/animated_character/motion_lines/line2D.hpp \
- src/animated_character/motion_lines/../../helpers/geometric_tester.hpp
+ src/animated_character/motion_lines/../../helpers/geometric_tester.hpp \
+ src/helpers/error_calculator.hpp src/helpers/anim_saver.hpp
 ../cgp/library/cgp/cgp.hpp:
 ../cgp/library/cgp/cgp_parameters.hpp:
 ../cgp/library/cgp/01_base/base.hpp:
@@ -879,3 +880,5 @@ src/animated_character/motion_lines/motion/direction.hpp:
 src/animated_character/motion_lines/motion/cue.hpp:
 src/animated_character/motion_lines/line2D.hpp:
 src/animated_character/motion_lines/../../helpers/geometric_tester.hpp:
+src/helpers/error_calculator.hpp:
+src/helpers/anim_saver.hpp:

@@ -14,6 +14,8 @@
 #include "animated_character/motion_lines/line2D.hpp"
 
 #include "helpers/camera_projecter.hpp"
+#include "helpers/error_calculator.hpp"
+#include "helpers/anim_saver.hpp"
 
 using cgp::mesh_drawable;
 
@@ -31,8 +33,8 @@ struct gui_parameters {
 	bool rotate_head_effect_active = false;
 	bool sketch_mode = false;
 	bool constraint = false;
-	int method = 1;
 	int selected_motion = -1; // -1 : none, other < motions.size() : local, motions.size() : global
+	bool play_anim = false;
 };
 
 

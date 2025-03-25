@@ -167,7 +167,7 @@ numarray<numarray<vec3>> Direction::compute_angle_velocities(animated_model_stru
                 angle -= 2.f*Pi;
             }
 
-            vec3 ang_vel = (2.f*axis*angle/dt) * 0.3f;
+            vec3 ang_vel = (2.f*axis*angle/dt) * 0.5f;
             
             if (std::abs(angle) < 1e-6f) {
                 ang_vel = vec3(0.0f, 0.0f, 0.0f);
@@ -215,8 +215,8 @@ void Direction::find_after_joints(animated_model_structure& animated_model)
         mat4 global_joint = root_global_joints[k_time - 1];
         // compute the local joints after
         for (int i = 0; i < chain.size(); i++) {
-            
-            // extract the local orientation at time step t
+
+            // Extract the local orientation at time step t
             mat3 orientation_now = local_joints_now[i].get_block_linear();
             rotation_transform rt_now = rotation_transform::from_matrix(orientation_now);
             quaternion q_now = rt_now.get_quaternion();
@@ -231,6 +231,32 @@ void Direction::find_after_joints(animated_model_structure& animated_model)
             // put the new orientation to the joint after!
             mat4 joint_after = local_joints_now[i];
             joint_after.set_block_linear(rotation_transform(q_after).matrix());
+
+            // Compute the quaternion update using angular velocity
+            /*vec3 ang_vel = all_angle_vel[k_time-1][i];
+            float ang_vel_norm = norm(ang_vel);
+
+            quaternion delta_q;
+            if (ang_vel_norm > 1e-6f) { // Avoid instability for small rotations
+                vec3 axis = ang_vel / ang_vel_norm;
+                float angle = ang_vel_norm * dt * 0.5f; // Half-angle for quaternion exponential
+
+                delta_q = quaternion(axis.x * sin(angle), 
+                                    axis.y * sin(angle), 
+                                    axis.z * sin(angle), 
+                                    cos(angle));
+
+            } else {
+                delta_q = quaternion(0.f, 0.f, 0.f, 1.f); // Identity quaternion
+            }
+
+            // Apply the quaternion update
+            quaternion q_after = delta_q * q_now; 
+            q_after = normalize(q_after);
+
+            // Set the new joint orientation
+            mat4 joint_after = local_joints_now[i];
+            joint_after.set_block_linear(rotation_transform(q_after).matrix());*/
 
             local_joints_after.push_back(joint_after);
 
@@ -419,7 +445,7 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
                 new_positions.push_back(position_to_follow);
             } else {
                 // stop here
-                max_front_step = step;
+                max_front_step = step-1;// change here
                 std::cout<<"stop!"<<std::endl;
             }
 
@@ -435,12 +461,14 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
         numarray<vec3> positions_back;
         int nb_steps_back = 0.8 * (max_front_step - N_pos_before);
         for(int i=1; i< nb_steps_back; i++) {
-            if (step-i >= 0) {
+            if (step-i >= 0 && step-i > N_pos_before) {
                 positions_back.push_back(new_positions[step-i]);
             }
         }
         std::cout<<"positions back :"<<positions_back<<std::endl;
-        new_positions.push_back(positions_back);
+        if (positions_back.size() > 0) {
+            new_positions.push_back(positions_back);
+        }
 
         std::cout<<"size positions "<<positions_to_follow.size()<<" > "<<new_positions.size()<<std::endl;
 
