@@ -14,7 +14,7 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source, camer
 
     N_pos_before = dir_line.samples.size();
     
-    int N_pos_total = N_pos_before + 10; // N_pos_total > (N_pos_before + 1)
+    int N_pos_total = N_pos_before + 30; // N_pos_total > (N_pos_before + 1)
     positions_to_follow.resize(N_pos_total);
 
     // position of movement
@@ -244,7 +244,7 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
 
     // 1) Put the character in its current pose    float total_length = 0.f;
 
-    animated_model.set_skeleton_from_animation("Idle", 0.0f);
+    animated_model.set_skeleton_from_animation("Idle", 0.267f);
         
     int i=0;
 	while(i<ordered_motions.size() && ordered_motions[i].joint_id!=joint_id ){
@@ -282,7 +282,7 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
     for (int step=1; step < positions_to_follow.size(); step++)
     {
         // 1) Put the character in its current pose
-        animated_model.set_skeleton_from_animation("Idle", 0.0f);
+        animated_model.set_skeleton_from_animation("Idle", 0.267f);
         
         int i=0;
 		while(i<ordered_motions.size() && ordered_motions[i].joint_id!=joint_id){
