@@ -202,7 +202,7 @@ void scene_structure::initialize()
 	//characters["Lola"].animated_model.give_pose("Jump", 1.28f);
 	//characters["Lola"].animated_model.give_pose("Jazz", 0.267f);
 	//characters["Lola"].animated_model.give_pose("Wtf", 0.0f);
-	//characters["Lola"].animated_model.give_pose("Throw", 0.88f);
+	characters["Lola"].animated_model.give_pose("Throw", 0.88f);
 	//characters["Lola"].animated_model.give_pose("Action", 0.0f);
 	//characters["Lola"].animated_model.give_pose("Climb", 0.0f);
 	//characters["Lola"].animated_model.give_pose("Crouch", 0.0f);
@@ -608,16 +608,19 @@ void scene_structure::display_gui()
 
 	ImGui::Spacing(); ImGui::Spacing();
 
-
-	if (ImGui::Button("Play/Stop Ref Anim")){
-		gui.play_anim = !gui.play_anim;
+	if(!gui.sketch_mode){
+		if (ImGui::Button("Play/Stop Ref Anim")){
+			gui.play_anim = !gui.play_anim;
+		}
+		if (ImGui::Button("Calculate error")){
+			compare_for_all_anim(characters["Lola"].animated_model.anim_name, motions, global_motion, characters["Lola"]);
+		}
 	}
-	if (ImGui::Button("Save Anim")){
+	
+	/*if (ImGui::Button("Save Anim")){
 		save_anim(project::path+"assets/xbot/animation/custom-simple", motions, global_motion, characters["Lola"]);
-	}
-	if (ImGui::Button("Calculate error")){
-		compare_for_all_anim(characters["Lola"].animated_model.anim_name, motions, global_motion, characters["Lola"]);
-	}
+	}*/
+	
 
 	ImGui::Unindent();
 
