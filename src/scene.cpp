@@ -199,10 +199,10 @@ void scene_structure::initialize()
 	std::cout<<"- Load XBot character"<<std::endl;
 	characters["Lola"] = load_character_xbot();
 	//characters["Lola"].animated_model.give_pose("Punch", 0.58f);
-	//characters["Lola"].animated_model.give_pose("Jump", 1.28f);
+	characters["Lola"].animated_model.give_pose("Jump", 1.28f);
 	//characters["Lola"].animated_model.give_pose("Jazz", 0.267f);
 	//characters["Lola"].animated_model.give_pose("Wtf", 0.0f);
-	characters["Lola"].animated_model.give_pose("Throw", 0.88f);
+	//characters["Lola"].animated_model.give_pose("Throw", 0.88f);
 	//characters["Lola"].animated_model.give_pose("Action", 0.0f);
 	//characters["Lola"].animated_model.give_pose("Climb", 0.0f);
 	//characters["Lola"].animated_model.give_pose("Crouch", 0.0f);
@@ -650,6 +650,8 @@ void scene_structure::display_gui()
 	if(old_sketch_mode != gui.sketch_mode){
 		// entering in normal mode from sketch mode
 		if(old_sketch_mode) {
+			is_action = true; is_cue = false; is_impact = false; delete_mode = false;
+
 			stop_delete_mode();
 			
 			build_empty_motions();

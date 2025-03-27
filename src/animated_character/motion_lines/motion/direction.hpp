@@ -28,5 +28,6 @@ class Direction : public Motion {
         void precompute_positions_with_impacts(animated_model_structure& animated_model, bool is_global);
         cgp::numarray<cgp::mat4> get_joints_in_chain(cgp::numarray<cgp::mat4> skeleton_joints);
         cgp::numarray<cgp::numarray<cgp::vec3>> compute_angle_velocities(animated_model_structure& animated_model, cgp::numarray<cgp::mat4>& root_global_joints);
+        cgp::numarray<cgp::vec3> compute_mean_angle_vel(cgp::numarray<cgp::numarray<cgp::vec3>> all_angle_vel);
 
 };

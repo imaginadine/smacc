@@ -212,6 +212,8 @@ vec3 animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
             m_joint_id++;
         }
 
+        vec3 current_pos_m_id = skeleton.joint_matrix_global[m_joint_id].get_block_translation();
+
         // 1) move impact_joint to the position of the impact
         vec3 impact_joint_pos = skeleton.joint_matrix_global[impact_joint_id].get_block_translation();
         vec3 translation = pos_impact - impact_joint_pos;
@@ -223,7 +225,7 @@ vec3 animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
         int start_id = impact_joint_id; // id blocked
         int end_id = m_joint_id; // to be moved if necessary
         vec3 current_pos = skeleton.joint_matrix_global[m_joint_id].get_block_translation(); // current position of joint_id
-        vec3 offset = current_pos_m - current_pos; // where it should be - where it is
+        vec3 offset = current_pos_m_id - current_pos; // where it should be - where it is
 
         ik_structure effect_ik = ik_start(end_id, current_pos, offset, start_id);
         effect_ik.normal_direction = false;
@@ -231,7 +233,6 @@ vec3 animated_model_structure::set_skeleton_from_motion_impacts(Motion& m)
         // 4) compute ik and update skeleton
         ik_compute(effect_ik, skeleton, m.is_constrained);
         
-
     }
     skeleton.update_joint_matrix_local_to_global();
     // 5) return the position to follow

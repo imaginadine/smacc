@@ -167,7 +167,7 @@ numarray<numarray<vec3>> Direction::compute_angle_velocities(animated_model_stru
                 angle -= 2.f*Pi;
             }
 
-            vec3 ang_vel = (2.f*axis*angle/dt) * 0.5f;
+            vec3 ang_vel = 2.f*axis*angle/dt;
             
             if (std::abs(angle) < 1e-6f) {
                 ang_vel = vec3(0.0f, 0.0f, 0.0f);
@@ -184,6 +184,27 @@ numarray<numarray<vec3>> Direction::compute_angle_velocities(animated_model_stru
 }
 
 
+numarray<vec3> Direction::compute_mean_angle_vel(numarray<numarray<vec3>> all_angle_vel)
+{
+    numarray<vec3> mean_angle_vels;
+    int N_time = all_angle_vel.size();
+    int N_joints = all_angle_vel[0].size();
+    for (int k_joint = 0 ; k_joint < N_joints ; k_joint++) {
+
+        vec3 mean_angle_vel = vec3(0.f,0.f,0.f);
+        float sum_weight = 0.f;
+        for (int k_time = 0 ; k_time < N_time; k_time++) {
+            float weight = float(k_time+1);
+            //float weight = 1.f - 4.f*((float(k_time)/float(N_time))-0.5f) * ((float(k_time)/float(N_time))-0.5f);
+            mean_angle_vel += weight * all_angle_vel[k_time][k_joint];
+            sum_weight += weight;
+        }
+        mean_angle_vels.push_back(mean_angle_vel/sum_weight);
+    }
+    return mean_angle_vels;
+}
+
+
 void Direction::find_after_joints(animated_model_structure& animated_model)
 {
     all_local_joints_after.resize_clear(0);
@@ -192,6 +213,7 @@ void Direction::find_after_joints(animated_model_structure& animated_model)
 
     numarray<mat4> root_global_joints;
     numarray<numarray<vec3>> all_angle_vel = compute_angle_velocities(animated_model, root_global_joints);
+    numarray<vec3> mean_angle_vels = compute_mean_angle_vel(all_angle_vel);
 
     // Put the skeleton at the end of the motion line
     animated_model.set_default_pose();
@@ -222,7 +244,9 @@ void Direction::find_after_joints(animated_model_structure& animated_model)
             quaternion q_now = rt_now.get_quaternion();
 
             // propagate the motion with forward kinematics
-            vec3 ang_vel = all_angle_vel[k_time-1][i];
+            //vec3 ang_vel = all_angle_vel[k_time-1][i];
+            //vec3 ang_vel = all_angle_vel[N_time/2][i];
+            vec3 ang_vel = mean_angle_vels[i];
             quaternion pure_ang_vel = quaternion(ang_vel, 0.f);
             quaternion deriv_q = 0.5f * q_now * pure_ang_vel;
             quaternion q_after = q_now + deriv_q * dt;
