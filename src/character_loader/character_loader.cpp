@@ -39,6 +39,16 @@ character_structure load_character_xbot() {
 	loader_param.add_animation("Action", project::path+"assets/xbot/animation/action/");
 	loader_param.add_animation("Crouch", project::path+"assets/xbot/animation/crouch/");
 	loader_param.add_animation("Custom-Simple", project::path+"assets/xbot/animation/custom-simple/");
+	loader_param.add_animation("Zombie", project::path+"assets/xbot/animation/zombie/");
+	loader_param.add_animation("Fist", project::path+"assets/xbot/animation/standingFistPump/");
+	loader_param.add_animation("Gun", project::path+"assets/xbot/animation/sittingGunMotion/");
+	loader_param.add_animation("Angry", project::path+"assets/xbot/animation/sittingAngry/");
+	loader_param.add_animation("Pontera", project::path+"assets/xbot/animation/pontera/");
+	loader_param.add_animation("Picking", project::path+"assets/xbot/animation/pickingUpObject/");
+	loader_param.add_animation("Jostled", project::path+"assets/xbot/animation/jostledPassenger/");
+	loader_param.add_animation("Jab", project::path+"assets/xbot/animation/jabToElbow/");
+	loader_param.add_animation("Hands", project::path+"assets/xbot/animation/handsForward/");
+	loader_param.add_animation("Falling", project::path+"assets/xbot/animation/fallingFlatImpact/");
 
 	character_structure character;
 	character.load_and_initialize(loader_param, affine_rts().set_scaling(0.01f));

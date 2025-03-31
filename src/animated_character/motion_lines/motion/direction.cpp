@@ -386,7 +386,7 @@ numarray<line_structure> Direction::is_impacted(numarray<line_structure> impact_
     for (int i=0; i<impact_lines.size(); i++) {
         int impact_line_id = impact_lines[i].joint_id;
         // if impact line id is a child of the motion joint_id
-        if (is_joint_parent(impact_line_id, joint_id, skeleton) || impact_line_id == joint_id) {
+        if (is_joint_parent(impact_line_id, joint_id, skeleton) || impact_line_id == joint_id || chain.contains(impact_line_id)) {
             res_impact_lines.push_back(impact_lines[i]);
         }
     }
@@ -427,8 +427,8 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
             initial_d = norm(pos_impact_joint - pos_impact_drawn);
         }
     }
-
-    if (joint_id == impact_joint_id) {
+    find_chain(animated_model.skeleton);
+    if (joint_id == impact_joint_id || chain.contains(impact_joint_id)) {
         positions_to_follow.resize(N_pos_before + 1);
 
     } else {

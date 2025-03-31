@@ -258,10 +258,10 @@ void animated_model_structure::set_skeleton_from_motion_joint_ik(Motion& m, floa
 
     // do not add "bouncing" on the same joint
     bool same_id = false;
+    m.find_chain(skeleton);
     for (const auto& impact_pair : m.impacts){        
         int impact_joint_id = impact_pair.first;
-    
-        if (m.joint_id == impact_joint_id) {
+        if (m.joint_id == impact_joint_id || m.chain.contains(impact_joint_id)) {
             same_id = true;
             break;
         }

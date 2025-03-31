@@ -29,6 +29,7 @@ class Motion {
 		cgp::numarray<float> times;
 		float t_start = 0.0f;
 		float t_end = 10000.0f;
+		float t_entire_dur = 0.0f;
 		cgp::numarray<float> distances;
 		float dist_total;
 		int joint_root_ik = 0;
