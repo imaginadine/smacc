@@ -256,7 +256,7 @@ void scene_structure::display_frame()
 		std::string character_name = entry.first;
 		character_structure& character = entry.second;
 
-		character.animated_model.set_skeleton_from_animation("Idle", 0.267f);
+		character.animated_model.set_skeleton_from_animation("Idle", 0.0f);
 
 		if(!gui.sketch_mode) {
 			for(int i=0; i<motions.size();i++){
@@ -386,7 +386,7 @@ void scene_structure::switch_benchmark(bool to_global)
 
 	// start again: like the sketch mode was ended
 	deselect_clusters();
-	characters["Lola"].animated_model.set_skeleton_from_animation("Idle", 0.267f);
+	characters["Lola"].animated_model.set_skeleton_from_animation("Idle", 0.0f);
 	old_sketch_mode = true;
 	gui.sketch_mode = false;
 

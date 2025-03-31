@@ -26,7 +26,9 @@ character_structure load_character_xbot() {
 	loader_param.set_skeleton(project::path+"assets/xbot/skeleton/");
 	loader_param.add_rigged_mesh("body1", project::path+"assets/xbot/mesh-xbot/mesh-beta_surface/", project::path+"assets/xbot/mesh-xbot/RobotSkin.png");
 	loader_param.add_rigged_mesh("body2", project::path+"assets/xbot/mesh-xbot/mesh-beta_joints/", project::path+"assets/xbot/mesh-xbot/RobotSkin.png");
-	loader_param.add_animation("Idle", project::path+"assets/xbot/animation/jazz/");
+	//loader_param.add_animation("Idle", project::path+"assets/xbot/animation/jazz/");
+	//loader_param.add_animation("Idle", project::path+"assets/xbot/animation/pickingUpObject/");
+	loader_param.add_animation("Idle", project::path+"assets/xbot/animation/sittingGunMotion/");
 
 	character_structure character;
 	character.load_and_initialize(loader_param, affine_rts().set_scaling(0.01f));
