@@ -49,6 +49,9 @@ character_structure load_character_xbot() {
 	loader_param.add_animation("Jab", project::path+"assets/xbot/animation/jabToElbow/");
 	loader_param.add_animation("Hands", project::path+"assets/xbot/animation/handsForward/");
 	loader_param.add_animation("Falling", project::path+"assets/xbot/animation/fallingFlatImpact/");
+	loader_param.add_animation("SitUp", project::path+"assets/xbot/animation/situps/");
+	loader_param.add_animation("FrontRaises", project::path+"assets/xbot/animation/frontRaises/");
+	
 
 	character_structure character;
 	character.load_and_initialize(loader_param, affine_rts().set_scaling(0.01f));

@@ -184,10 +184,12 @@ void scene_structure::update_character()
 void scene_structure::initialize()
 {
 	environment.background_color = vec3(169.f/255.f,234.f/255.f,254.f/255.f);
+	camera_lock = false;
 
 	camera_control.initialize(inputs, window); // Give access to the inputs and window global state to the camera controler
 	camera_control.set_rotation_axis_y();
 	camera_control.look_at({ 4.0f, 3.0f, 3.0f }, {0,0,0}, {0,0,1});
+	
 	global_frame.initialize_data_on_gpu(mesh_primitive_frame());
 	
 
@@ -203,20 +205,23 @@ void scene_structure::initialize()
 	//characters["Lola"].animated_model.give_pose("Punch", 0.58f);
 	//characters["Lola"].animated_model.give_pose("Jazz", 0.267f);
 	//characters["Lola"].animated_model.give_pose("Wtf", 0.0f);
-	//characters["Lola"].animated_model.give_pose("Throw", 0.88f);
+	//characters["Lola"].animated_model.give_pose("Throw", 0.776f); // 0.88f
 	//characters["Lola"].animated_model.give_pose("Action", 0.0f);
 	//characters["Lola"].animated_model.give_pose("Climb", 0.0f);
 	//characters["Lola"].animated_model.give_pose("Crouch", 0.0f);
+	//characters["Lola"].animated_model.give_pose("Swim", 1.253f);
+	//characters["Lola"].animated_model.give_pose("SitUp", 0.634f);
 	
 	// USER STUDY
 
-	//characters["Lola"].animated_model.give_pose("Custom-Simple", 1.3f);
-	//characters["Lola"].animated_model.give_pose("Custom", 1.309f);
-	//characters["Lola"].animated_model.give_pose("Knee", 0.733f);
-	//characters["Lola"].animated_model.give_pose("Swim", 1.253f);
+	//characters["Lola"].animated_model.give_pose("Custom-Simple", 1.3f); lock_camera(vec3(2.565088f, 1.546401, -0.371257), vec3(-0.169977f, 0.454957f, 0.185080f));
+	//characters["Lola"].animated_model.give_pose("Custom", 1.309f); lock_camera(vec3(-0.877400f, 1.449380f, 3.358995f), vec3(0.174873f, 0.961421f, -0.301822f));
+	//characters["Lola"].animated_model.give_pose("FrontRaises", 1.438f); lock_camera(vec3(-2.841199f, 1.691362f, -0.156965f), vec3(0.284143f, 0.712535f, 0.262001f));
+	//characters["Lola"].animated_model.give_pose("Knee", 0.733f); lock_camera(vec3(-2.841199f, 1.691362f, -0.156965f), vec3(0.257018f, 0.717651f, 0.444468f));
+	
 
 	// PART 1
-	//characters["Lola"].animated_model.give_pose("Jump", 1.485f); // vs sans rebond
+	//characters["Lola"].animated_model.give_pose("Jump", 1.438f); // vs sans rebond //1.284f //1.485f
 	//characters["Lola"].animated_model.give_pose("Zombie", 1.423f); // vs global
 	//characters["Lola"].animated_model.give_pose("Fist", 1.608f); // alone
 	//characters["Lola"].animated_model.give_pose("Gun", 0.0f); // IK ?
@@ -570,7 +575,7 @@ void scene_structure::display_gui()
 				
 				ImGui::Text("Motion amplitude"); ImGui::SameLine();
 				input_label = "##end_time" + std::to_string(gui.selected_motion); // Unique label for each input
-				static float tmp_end = global_motion.t_end; // put ina table to manage multiple clusters
+				static float tmp_end = global_motion.t_end; // put in a table to manage multiple clusters
 				ImGui::SliderFloat(input_label.c_str(), &tmp_end, global_motion.t_start, global_motion.t_start + global_motion.t_entire_dur, "");
 				// Detect when the user has finished editing
 				if (ImGui::IsItemDeactivatedAfterEdit()) {
@@ -640,6 +645,10 @@ void scene_structure::display_gui()
 	/*if (ImGui::Button("Save Anim")){
 		save_anim(project::path+"assets/xbot/animation/custom-simple", motions, global_motion, characters["Lola"]);
 	}*/
+
+	if (ImGui::Button("Get Camera Pos")){
+		std::cout<<"Position camera : "<<camera_control.camera_model.position()<<" Center Camera : "<<camera_control.camera_model.center_of_rotation<<std::endl;
+	}
 	
 
 	ImGui::Unindent();
@@ -670,9 +679,10 @@ void scene_structure::display_gui()
 	if(old_sketch_mode != gui.sketch_mode){
 		// entering in normal mode from sketch mode
 		if(old_sketch_mode) {
-			is_action = true; is_cue = false; is_impact = false; delete_mode = false;
 
 			stop_delete_mode();
+
+			is_action = true; is_cue = false; is_impact = false; delete_mode = false;
 			
 			build_empty_motions();
 
@@ -681,6 +691,7 @@ void scene_structure::display_gui()
 
 			// the animation begins again
 			characters["Lola"].timer.scale = tmp_scale;
+			characters["Lola"].timer.t_periodic = 0.0f;
 
 		} else { // entering in sketch mode
 			tmp_scale = characters["Lola"].timer.scale;
@@ -701,9 +712,9 @@ void scene_structure::mouse_move_event()
 					int old_id_to_remove = id_to_remove;
 					id_to_remove = get_closest_line_id_2D(inputs.mouse.position.current, lines, camera_projection, inverse(camera_control.camera_model.matrix_frame()));
 					// change to red if needed
-					if ( (old_id_to_remove != id_to_remove) || (id_to_remove == 0 && equals(lines[0].get_color(),vec3(0.f,0.f,0.f))) ) {
+					if ( (old_id_to_remove != id_to_remove) || (id_to_remove == old_id_to_remove && equals(lines[old_id_to_remove].get_color(),vec3(0.f,0.f,0.f))) ) {
 						lines[id_to_remove].set_color(vec3(1.f,0.f,0.f));
-						if (old_id_to_remove < lines.size()) lines[old_id_to_remove].set_color(vec3(0.f,0.f,0.f));
+						if (old_id_to_remove < lines.size() && old_id_to_remove != id_to_remove) lines[old_id_to_remove].set_color(vec3(0.f,0.f,0.f));
 					}
 				} else if(lines.size()==1){
 					id_to_remove = 0;
@@ -819,7 +830,7 @@ void scene_structure::mouse_click_event()
 				}	
 			}
 
-		} else {
+		} else if(!camera_lock){
 			camera_control.action_mouse_click(environment.camera_view);
 		}
 	}
@@ -827,14 +838,13 @@ void scene_structure::mouse_click_event()
 
 void scene_structure::keyboard_event()
 {
-	camera_control.action_keyboard(environment.camera_view);
-
-	if(effect_walk.active){
-		effect_walking_keyboard_event(effect_transition[current_active_character], characters[current_active_character], inputs, effect_walk);
+	if(!camera_lock) {
+		camera_control.action_keyboard(environment.camera_view);
 	}
 }
 void scene_structure::idle_frame()
 {
+	if (camera_lock) camera_control.look_at(pos_to_lock, center_to_lock, {0,0,1});
 	camera_control.idle_frame(environment.camera_view);
 }
 
@@ -861,4 +871,10 @@ int scene_structure::find_line_from_cluster_line(line_structure m_line)
 		}
 	}
 	return id_found;
+}
+
+void scene_structure::lock_camera(vec3 pos_to_lock, vec3 center_to_lock){
+	camera_lock = true;
+	this->pos_to_lock = pos_to_lock;
+	this->center_to_lock = center_to_lock;
 }

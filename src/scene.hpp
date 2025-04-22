@@ -26,8 +26,8 @@ struct gui_parameters {
 	bool display_surface = true;
 	bool display_ground = false;
 	bool display_texture = true;
-	bool display_skeleton = true;
-	bool display_skeleton_joint_sphere = false;
+	bool display_skeleton = false;
+	bool display_skeleton_joint_sphere = true;
 	bool display_skeleton_joint_frame = false;
 	bool display_skeleton_bone = true;
 	bool rotate_head_effect_active = false;
@@ -48,6 +48,9 @@ struct scene_structure : cgp::scene_inputs_generic {
 	bool is_cue = false;
 	bool is_impact = false;
 	bool delete_mode = false;
+	bool camera_lock;
+	vec3 pos_to_lock = vec3(0.f,0.f,0.f);
+	vec3 center_to_lock = vec3(0.f,0.f,0.f);
 	
 	// ****************************** //
 	// Elements and shapes of the scene
@@ -119,6 +122,7 @@ struct scene_structure : cgp::scene_inputs_generic {
 	int find_line_from_cluster_line(line_structure m_line);
 	void push_motion_button(int i, Motion& motion);
 	void switch_benchmark(bool to_global);
+	void lock_camera(cgp::vec3 pos_to_lock, cgp::vec3 center_to_lock);
 
 };
 
