@@ -133,7 +133,7 @@ src/animated_character/asset_loader/asset_loader.o: \
  ../cgp/library/cgp/21_scene_project_helper/path/path.hpp \
  src/animated_character/asset_loader/../animated_model/animated_model.hpp \
  src/animated_character/asset_loader/../animated_model/../controller_skinning/controller_skinning.hpp \
- src/animated_character/asset_loader/../animated_model/../skeleton_structure/skeleton_structure.hpp \
+ src/animated_character/asset_loader/../animated_model/../controller_skinning/../skeleton_structure/skeleton_structure.hpp \
  src/animated_character/asset_loader/../animated_model/../skeleton_animation/skeleton_animation.hpp \
  src/animated_character/asset_loader/../animated_model/../motion_lines/motion/motion.hpp \
  src/animated_character/asset_loader/../animated_model/../motion_lines/motion/../line.hpp \
@@ -430,7 +430,8 @@ src/animated_character/asset_loader/asset_loader.o: \
  src/animated_character/asset_loader/../animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/RealQZ.h \
  src/animated_character/asset_loader/../animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/GeneralizedEigenSolver.h \
  src/animated_character/asset_loader/../animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/./RealQZ.h \
- src/animated_character/asset_loader/../animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h
+ src/animated_character/asset_loader/../animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h \
+ src/animated_character/asset_loader/../../environment.hpp
 src/animated_character/asset_loader/asset_loader.hpp:
 ../cgp/library/cgp/cgp.hpp:
 ../cgp/library/cgp/cgp_parameters.hpp:
@@ -565,7 +566,7 @@ src/animated_character/asset_loader/asset_loader.hpp:
 ../cgp/library/cgp/21_scene_project_helper/path/path.hpp:
 src/animated_character/asset_loader/../animated_model/animated_model.hpp:
 src/animated_character/asset_loader/../animated_model/../controller_skinning/controller_skinning.hpp:
-src/animated_character/asset_loader/../animated_model/../skeleton_structure/skeleton_structure.hpp:
+src/animated_character/asset_loader/../animated_model/../controller_skinning/../skeleton_structure/skeleton_structure.hpp:
 src/animated_character/asset_loader/../animated_model/../skeleton_animation/skeleton_animation.hpp:
 src/animated_character/asset_loader/../animated_model/../motion_lines/motion/motion.hpp:
 src/animated_character/asset_loader/../animated_model/../motion_lines/motion/../line.hpp:
@@ -863,3 +864,4 @@ src/animated_character/asset_loader/../animated_model/../../helpers/../../third_
 src/animated_character/asset_loader/../animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/GeneralizedEigenSolver.h:
 src/animated_character/asset_loader/../animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/./RealQZ.h:
 src/animated_character/asset_loader/../animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h:
+src/animated_character/asset_loader/../../environment.hpp:

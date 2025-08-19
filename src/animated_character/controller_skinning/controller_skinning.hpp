@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cgp/cgp.hpp"
-
+#include "../skeleton_structure/skeleton_structure.hpp"
 
 // A skinning weight entry: the local joint index, and the associated weight
 struct skinning_weight_info {

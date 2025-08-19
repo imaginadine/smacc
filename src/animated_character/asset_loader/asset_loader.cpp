@@ -1,4 +1,5 @@
 #include "asset_loader.hpp"
+#include "../../environment.hpp"
 
 using namespace cgp;
 
@@ -46,7 +47,6 @@ animated_model_structure mesh_skinning_loader(filename_loader_structure param, a
     animated_model_structure animated_model;
     affine_rt T; 
     T.set_rotation(transform.rotation).set_translation(transform.translation);
-    
 
     for(auto& entry : param.loader_rigged_mesh) {
 

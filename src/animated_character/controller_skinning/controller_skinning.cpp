@@ -1,5 +1,7 @@
 #include "controller_skinning.hpp"
 
+using namespace cgp;
+
 std::string type_str(skinning_weight_info const& )
 {
     return "skinning_weight_info";

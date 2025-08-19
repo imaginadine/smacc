@@ -21,6 +21,30 @@ character_structure load_character_lola() {
 	return character;
 }
 
+character_structure load_character_akai() {
+	filename_loader_structure loader_param;
+	loader_param.set_skeleton(project::path+"assets/akai/skeleton/");
+	loader_param.add_rigged_mesh("body", project::path+"assets/akai/mesh-akai/", project::path+"assets/akai/mesh-akai/akai_diffuse.png");
+	loader_param.add_animation("Dance1", project::path+"assets/akai/animation/idle/");
+
+	character_structure character;
+	character.load_and_initialize(loader_param, affine_rts().set_scaling(0.01f));
+
+	return character;
+}
+
+character_structure load_character_octopus() {
+	filename_loader_structure loader_param;
+	loader_param.set_skeleton(project::path+"assets/octopus/skeleton/");
+	loader_param.add_rigged_mesh("body", project::path+"assets/octopus/mesh-octopus/", project::path+"assets/octopus/mesh-octopus/base_color.png");
+
+	character_structure character;
+	character.load_and_initialize(loader_param, affine_rts().set_scaling(1.f));
+
+	return character;
+}
+
+
 character_structure load_character_xbot() {
 	filename_loader_structure loader_param;
 	loader_param.set_skeleton(project::path+"assets/xbot/skeleton/");
@@ -91,6 +115,19 @@ character_structure load_character_maria_sword() {
 
 	character_structure character;
 	character.load_and_initialize(loader_param, affine_rts().set_scaling(0.01f));
+
+	return character;
+}
+
+character_structure load_cow() {
+	filename_loader_structure loader_param;
+	loader_param.set_skeleton(project::path+"assets/cow/skeleton/");
+	loader_param.add_rigged_mesh("Cow",project::path+"assets/cow/mesh-cow/", project::path+"assets/cow/mesh-cow/texture.png");
+	loader_param.add_animation("Idle", project::path+"assets/cow/animation/idle/");
+
+	character_structure character;
+	rotation_transform rt = rotation_transform::from_matrix(mat3({0.f,1.f,0.f,0.f,0.f,1.f,1.f,0.f,0.f}));
+	character.load_and_initialize(loader_param, affine_rts().set_rotation(rt));
 
 	return character;
 }

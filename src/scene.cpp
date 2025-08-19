@@ -144,13 +144,13 @@ void scene_structure::update_character()
 	for(Cue& cue_m : motion_cues){
 		cue_m.find_positions(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[cue_m.joint_id].get_block_translation());
 		cue_m.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
-		cue_m.t_end = cue_m.times[cue_m.times.size()-1]; // to the end, by default
+		cue_m.t_end = cue_m.times[cue_m.times.size()-1]; // to the middle, by default
 		cue_m.t_entire_dur = cue_m.t_end;
 	}
 	if(global_motion.lines.size()>0){
 		global_motion.find_positions_global(characters["Lola"].animated_model.skeleton, characters["Lola"].animated_model.skeleton.joint_matrix_global[global_motion.joint_id].get_block_translation());
 		global_motion.animate_motion_to_joint(characters["Lola"].animated_model.skeleton);
-		global_motion.t_end = global_motion.times[global_motion.times.size()-1]; // to the end, by default
+		global_motion.t_end = global_motion.times[global_motion.times.size()-1]; // to the middle, by default
 		global_motion.t_entire_dur = global_motion.t_end;
 	}
 
@@ -158,9 +158,8 @@ void scene_structure::update_character()
 	for(Direction& dir_m : motion_dirs){
 		dir_m.find_after_joints(characters["Lola"].animated_model);
 		dir_m.t_entire_dur = dir_m.times[dir_m.times.size()-1];
-		dir_m.t_end = dir_m.t_entire_dur *0.8f; // to the end, by default
+		dir_m.t_end = dir_m.t_entire_dur *0.8f; 
 		dir_m.animate_motion_to_joint(characters["Lola"].animated_model.skeleton); // see to keep original times maybe...
-		//std::cout<<"size of times : "<<dir_m.times.size()<<" size of N_pos_before + all_joints_after : "<<dir_m.N_pos_before<<" + "<<dir_m.all_local_joints_after.size()<<" = "<<dir_m.N_pos_before + dir_m.all_local_joints_after.size()<<std::endl;
 	}
 
 	// manage impacts
@@ -201,7 +200,12 @@ void scene_structure::initialize()
 
 	
 	std::cout<<"- Load XBot character"<<std::endl;
+	
 	characters["Lola"] = load_character_xbot();
+	
+	/*characters["Lola"] = load_cow();
+	characters["Lola"].animated_model.give_pose("Idle", 0.0f);*/
+	
 	//characters["Lola"].animated_model.give_pose("Punch", 0.58f);
 	//characters["Lola"].animated_model.give_pose("Jazz", 0.267f);
 	//characters["Lola"].animated_model.give_pose("Wtf", 0.0f);
@@ -240,7 +244,6 @@ void scene_structure::initialize()
 
 	for(auto& entry : characters)
 		entry.second.timer.start();
-
 }
 
 void scene_structure::order_motions_by_joint_id()

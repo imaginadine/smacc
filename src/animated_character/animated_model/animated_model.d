@@ -132,7 +132,7 @@ src/animated_character/animated_model/animated_model.o: \
  ../cgp/library/cgp/21_scene_project_helper/scene_project_helper.hpp \
  ../cgp/library/cgp/21_scene_project_helper/path/path.hpp \
  src/animated_character/animated_model/../controller_skinning/controller_skinning.hpp \
- src/animated_character/animated_model/../skeleton_structure/skeleton_structure.hpp \
+ src/animated_character/animated_model/../controller_skinning/../skeleton_structure/skeleton_structure.hpp \
  src/animated_character/animated_model/../skeleton_animation/skeleton_animation.hpp \
  src/animated_character/animated_model/../motion_lines/motion/motion.hpp \
  src/animated_character/animated_model/../motion_lines/motion/../line.hpp \
@@ -563,7 +563,7 @@ src/animated_character/animated_model/animated_model.hpp:
 ../cgp/library/cgp/21_scene_project_helper/scene_project_helper.hpp:
 ../cgp/library/cgp/21_scene_project_helper/path/path.hpp:
 src/animated_character/animated_model/../controller_skinning/controller_skinning.hpp:
-src/animated_character/animated_model/../skeleton_structure/skeleton_structure.hpp:
+src/animated_character/animated_model/../controller_skinning/../skeleton_structure/skeleton_structure.hpp:
 src/animated_character/animated_model/../skeleton_animation/skeleton_animation.hpp:
 src/animated_character/animated_model/../motion_lines/motion/motion.hpp:
 src/animated_character/animated_model/../motion_lines/motion/../line.hpp:

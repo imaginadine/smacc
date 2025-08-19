@@ -130,7 +130,8 @@ src/animated_character/controller_skinning/controller_skinning.o: \
  ../cgp/library/cgp/20_format_parser/mesh_loader/obj/obj.hpp \
  ../cgp/library/cgp/20_format_parser/mesh_loader/obj_advanced/obj_advanced.hpp \
  ../cgp/library/cgp/21_scene_project_helper/scene_project_helper.hpp \
- ../cgp/library/cgp/21_scene_project_helper/path/path.hpp
+ ../cgp/library/cgp/21_scene_project_helper/path/path.hpp \
+ src/animated_character/controller_skinning/../skeleton_structure/skeleton_structure.hpp
 src/animated_character/controller_skinning/controller_skinning.hpp:
 ../cgp/library/cgp/cgp.hpp:
 ../cgp/library/cgp/cgp_parameters.hpp:
@@ -263,3 +264,4 @@ src/animated_character/controller_skinning/controller_skinning.hpp:
 ../cgp/library/cgp/20_format_parser/mesh_loader/obj_advanced/obj_advanced.hpp:
 ../cgp/library/cgp/21_scene_project_helper/scene_project_helper.hpp:
 ../cgp/library/cgp/21_scene_project_helper/path/path.hpp:
+src/animated_character/controller_skinning/../skeleton_structure/skeleton_structure.hpp:
