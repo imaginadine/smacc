@@ -9,7 +9,6 @@ void Direction::find_positions(skeleton_structure skeleton, vec3 t_source)
     line_structure dir_line = get_closest_line(skeleton);
 
     calculate_speed();
-    std::cout<<"v = "<<v<<std::endl;
 
     N_pos_before = dir_line.samples.size()-1;
     
@@ -54,7 +53,6 @@ void Direction::find_positions_global(skeleton_structure skeleton, vec3 t_source
 
     // case of close start and end
     if (norm(dir_line.samples[dir_line.samples.size()-1] - dir_line.samples[0]) < 0.1f && dir_line.get_length() > 0.3f) {
-        std::cout<<"boucle"<<std::endl;
         
         // same position
         for (int i=0 ; i < N_pos_total; i++) {
@@ -90,7 +88,6 @@ void Direction::find_positions_global(skeleton_structure skeleton, vec3 t_source
         }
 
     } else {
-        std::cout<<"ligne"<<std::endl;
         vec3 dir = dir_line.samples[dir_line.samples.size()-1] - dir_line.samples[0];
         vel = v * dir;
 
@@ -195,7 +192,6 @@ numarray<vec3> Direction::compute_mean_angle_vel(numarray<numarray<vec3>> all_an
         float sum_weight = 0.f;
         for (int k_time = 0 ; k_time < N_time; k_time++) {
             float weight = float(k_time+1);
-            //float weight = 1.f - 4.f*((float(k_time)/float(N_time))-0.5f) * ((float(k_time)/float(N_time))-0.5f);
             mean_angle_vel += weight * all_angle_vel[k_time][k_joint];
             sum_weight += weight;
         }
@@ -244,8 +240,7 @@ void Direction::find_after_joints(animated_model_structure& animated_model)
             quaternion q_now = rt_now.get_quaternion();
 
             // propagate the motion with forward kinematics
-            //vec3 ang_vel = all_angle_vel[k_time-1][i];
-            //vec3 ang_vel = all_angle_vel[N_time/2][i];
+        
             vec3 ang_vel = mean_angle_vels[i];
             quaternion pure_ang_vel = quaternion(ang_vel, 0.f);
             quaternion deriv_q = 0.5f * q_now * pure_ang_vel;
@@ -255,32 +250,6 @@ void Direction::find_after_joints(animated_model_structure& animated_model)
             // put the new orientation to the joint after!
             mat4 joint_after = local_joints_now[i];
             joint_after.set_block_linear(rotation_transform(q_after).matrix());
-
-            // Compute the quaternion update using angular velocity
-            /*vec3 ang_vel = all_angle_vel[k_time-1][i];
-            float ang_vel_norm = norm(ang_vel);
-
-            quaternion delta_q;
-            if (ang_vel_norm > 1e-6f) { // Avoid instability for small rotations
-                vec3 axis = ang_vel / ang_vel_norm;
-                float angle = ang_vel_norm * dt * 0.5f; // Half-angle for quaternion exponential
-
-                delta_q = quaternion(axis.x * sin(angle), 
-                                    axis.y * sin(angle), 
-                                    axis.z * sin(angle), 
-                                    cos(angle));
-
-            } else {
-                delta_q = quaternion(0.f, 0.f, 0.f, 1.f); // Identity quaternion
-            }
-
-            // Apply the quaternion update
-            quaternion q_after = delta_q * q_now; 
-            q_after = normalize(q_after);
-
-            // Set the new joint orientation
-            mat4 joint_after = local_joints_now[i];
-            joint_after.set_block_linear(rotation_transform(q_after).matrix());*/
 
             local_joints_after.push_back(joint_after);
 
@@ -449,10 +418,8 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
         
         vec3 position_to_follow;
         int step=N_pos_before+1;
-        std::cout<<"size pos to follow = "<<positions_to_follow.size()<<std::endl;
         while (step < positions_to_follow.size() && step < max_front_step)
         {
-            std::cout<<"step = "<<step<<" max front step = "<<max_front_step<<std::endl;
 
             // Put the character in its pose
             animated_model.set_default_pose();
@@ -470,7 +437,6 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
             } else {
                 // stop here
                 max_front_step = step-1;// change here
-                std::cout<<"stop!"<<std::endl;
             }
 
             step++;
@@ -478,8 +444,6 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
 
         step = step-1;
         max_front_step = step; // in case of step == positions_to_follow
-
-        std::cout<<"new max front step :"<<max_front_step<<std::endl;
         
         // go back
         numarray<vec3> positions_back;
@@ -489,19 +453,15 @@ void Direction::precompute_positions_with_impacts(animated_model_structure& anim
                 positions_back.push_back(new_positions[step-i]);
             }
         }
-        std::cout<<"positions back :"<<positions_back<<std::endl;
         if (positions_back.size() > 0) {
             new_positions.push_back(positions_back);
         }
-
-        std::cout<<"size positions "<<positions_to_follow.size()<<" > "<<new_positions.size()<<std::endl;
 
         // Update new positions_to_follow
         positions_to_follow.resize_clear(0);
         positions_to_follow = new_positions;
         
     }
-    std::cout<<"positions to follow : "<<positions_to_follow<<std::endl;
     // find distances between the positions
     find_distances();
     

@@ -8,6 +8,9 @@ using namespace cgp;
 
 void initialize_ground(mesh_drawable& ground);
 
+/**
+ * compute how much the whole animation should last : the maximum duration of each motion + 0.5 sec
+ */
 float scene_structure::calculate_animation_duration()
 {
 	float max_duration = 3.0f; //seconds
@@ -69,13 +72,6 @@ void scene_structure::update_root_iks()
 			motion_dirs[i] = *dir_ptr; // Dereference the smart pointer
 		}
 	}
-	// test :
-	for(Cue cue : motion_cues) {
-		std::cout<<"Cue IK Chain = "<<cue.chain<<std::endl;
-	}
-	for(Direction dir : motion_dirs) {
-		std::cout<<"Dir IK Chain = "<<dir.chain<<std::endl;
-	}
 
 }
 
@@ -122,7 +118,6 @@ void scene_structure::build_empty_motions()
 			impact_lines.push_back(new_line);
 		}
 	}
-	std::cout<<"nb impact lines : "<<impact_lines.size()<<std::endl;
 
 }
 
@@ -159,7 +154,7 @@ void scene_structure::update_character()
 		dir_m.find_after_joints(characters["Lola"].animated_model);
 		dir_m.t_entire_dur = dir_m.times[dir_m.times.size()-1];
 		dir_m.t_end = dir_m.t_entire_dur *0.8f; 
-		dir_m.animate_motion_to_joint(characters["Lola"].animated_model.skeleton); // see to keep original times maybe...
+		dir_m.animate_motion_to_joint(characters["Lola"].animated_model.skeleton); 
 	}
 
 	// manage impacts
@@ -168,7 +163,6 @@ void scene_structure::update_character()
 	}
 	if(global_motion.lines.size()>0) {
 		global_motion.check_impact_global(impact_lines, motion_dirs, characters["Lola"].animated_model);
-		std::cout<<"nb d'impacts : "<<global_motion.impacts.size()<<std::endl;
 	}
 
 	// order the motions to know which is calculated first
@@ -199,8 +193,7 @@ void scene_structure::initialize()
 	initialize_ground(ground);
 
 	
-	std::cout<<"- Load XBot character"<<std::endl;
-	
+	std::cout<<"- Load character"<<std::endl;
 	characters["Lola"] = load_character_xbot();
 	
 	/*characters["Lola"] = load_cow();
@@ -397,6 +390,9 @@ void scene_structure::stop_delete_mode(){
 	}
 }
 
+/**
+ * put all lines in default color
+ */
 void scene_structure::deselect_clusters()
 {
 	if(gui.selected_motion != -1) {
@@ -645,6 +641,7 @@ void scene_structure::display_gui()
 		}
 	}
 	
+	// possible to save the current animation by deselecting these lines
 	/*if (ImGui::Button("Save Anim")){
 		save_anim(project::path+"assets/xbot/animation/custom-simple", motions, global_motion, characters["Lola"]);
 	}*/
@@ -757,7 +754,6 @@ void scene_structure::mouse_move_event()
 
 						float depth;
 						int joint_id_found = find_joint_from_2D_line(is_action, current_line_projected_positions, characters["Lola"].animated_model, camera_projection, inverse(camera_control.camera_model.matrix_frame()), depth);
-						printf("found joint = %d with depth = %f\n", joint_id_found, depth);
 
 						// if a joint was found
 						if(joint_id_found != -1)

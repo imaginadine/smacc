@@ -8,7 +8,6 @@ void Cue::find_positions(skeleton_structure skeleton, vec3 t_source)
     line_structure dir_line = lines[0];
 
     calculate_speed();
-    std::cout<<"v = "<<v<<std::endl;
 
     v = 2.f*v;
     

@@ -433,7 +433,6 @@ src/main.o: src/main.cpp ../cgp/library/cgp/cgp.hpp \
  src/animated_character/animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/./RealQZ.h \
  src/animated_character/animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h \
  src/animated_character/asset_loader/asset_loader.hpp \
- src/effects/effects.hpp \
  src/animated_character/motion_lines/motion/direction.hpp \
  src/animated_character/motion_lines/motion/cue.hpp \
  src/animated_character/motion_lines/line2D.hpp \
@@ -875,7 +874,6 @@ src/animated_character/animated_model/../../helpers/../../third_party/eigen/Eige
 src/animated_character/animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/./RealQZ.h:
 src/animated_character/animated_model/../../helpers/../../third_party/eigen/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h:
 src/animated_character/asset_loader/asset_loader.hpp:
-src/effects/effects.hpp:
 src/animated_character/motion_lines/motion/direction.hpp:
 src/animated_character/motion_lines/motion/cue.hpp:
 src/animated_character/motion_lines/line2D.hpp:

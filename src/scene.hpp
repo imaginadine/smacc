@@ -5,7 +5,6 @@
 #include "environment.hpp"
 
 #include "animated_character/animated_character.hpp"
-#include "effects/effects.hpp"
 
 #include "animated_character/motion_lines/motion/motion.hpp"
 #include "animated_character/motion_lines/motion/direction.hpp"
@@ -71,10 +70,6 @@ struct scene_structure : cgp::scene_inputs_generic {
 
 	std::map<std::string, character_structure> characters;
 	std::string current_active_character;
-
-	std::map<std::string, effect_transition_structure> effect_transition;	
-	effect_walking_structure effect_walk;
-	effect_ik_structure effect_ik;
 
 	mesh_drawable sphere_ik;
 	mesh_drawable ground;

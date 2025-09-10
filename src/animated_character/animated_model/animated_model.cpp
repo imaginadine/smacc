@@ -714,9 +714,8 @@ void give_follow_through(skeleton_structure& skeleton, int id_parent, numarray<f
             if (i == (children.size()/2)) {
                 rotation_transform rt = rotation_transform::from_vector_transform(normalize(old_pos_child - old_pos_parent), normalize(global_child_joint.get_block_translation() - global_parent_joint.get_block_translation()));
                 global_parent_joint.apply_transform_to_block_linear(rt.matrix());
-                // update local ?
+                // update local
 		        local_parent_joint = skeleton.joint_matrix_global[skeleton.parent_index[id_parent]].inverse_assuming_rigid_transform() * global_parent_joint;
-                //std::cout<<"rotation applied to "<<id_parent<<std::endl;
             }
         }
 

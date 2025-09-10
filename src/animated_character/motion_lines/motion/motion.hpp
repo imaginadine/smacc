@@ -45,8 +45,6 @@ class Motion {
 		float speed(int step, cgp::numarray<float> old_times);
 		float get_a();
 
-		//static std::unique_ptr<Motion> find_type_line(line_structure line, skeleton_structure& skeleton, int id, cgp::camera_projection_perspective const& P, cgp::mat4 const& camera_view_inverse, int method_to_give);
-
 		Motion() = default;
 		Motion(line_structure line, int id);
 		Motion(line_structure line, skeleton_structure skeleton);

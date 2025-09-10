@@ -66,10 +66,6 @@ int find_motion_id(line_structure line, skeleton_structure& skeleton)
         }
     }
 
-    if (joint_id != 0) {
-        std::cout << "Joint id found: " << joint_id << ", with distance: " << min_dist << std::endl;
-    }
-
     return joint_id;
 }
 
@@ -275,7 +271,6 @@ void Motion::find_positions(skeleton_structure skeleton, vec3 t_source)
     line_structure dir_line = get_closest_line(skeleton);
 
     calculate_speed();
-    std::cout<<"v = "<<v<<std::endl;
 
     N_pos_before = dir_line.samples.size()-1;
     
@@ -312,7 +307,6 @@ mat4 Motion::evaluate(float t) {
     if(t > t_end) {
         int end_step = get_step_from_time(t_end);
         M = joints[end_step];
-        //M = joints[joints.size()-1];
     } else {
         if(idx0<N_time-1){
             mat4 const& M0 = joints[idx0];
