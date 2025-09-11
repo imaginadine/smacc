@@ -10,6 +10,5 @@
 *.app
 
 .vscode/
-scripts/
 
 vscode.code-workspace
