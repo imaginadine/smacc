@@ -10,6 +10,11 @@ https://www.youtube.com/watch?v=cgLmWtOyyxs
 
 Author's website : https://perso.telecom-paristech.fr/alegrand/
 
+## Examples
+<img src="./Capturevidodu04-04-2025145638-ezgif.com-cut.gif" style="width: 300px;">
+<img src="./Capturevidodu04-04-2025151643-ezgif.com-crop.gif" style="width: 500px;">
+<img src="./Jump-ezgif.com-video-to-gif-converter.gif" style="width: 300px;">
+
 ## Code
 
 You can download the code with:
